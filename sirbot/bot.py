@@ -8,11 +8,12 @@ LOG = logging.getLogger(__name__)
 
 
 class SirBot(aiohttp.web.Application):
-    def __init__(self, **kwargs):
+    def __init__(self, user_agent=None, **kwargs):
         super().__init__(**kwargs)
 
         self.plugins = dict()
         self.http_session = aiohttp.ClientSession(loop=kwargs.get('loop') or asyncio.get_event_loop())
+        self.user_agent = user_agent or 'sir-bot-a-lot'
         self.router.add_route('GET', '/sirbot/plugins', endpoints.plugins)
 
     def start(self, **kwargs):
