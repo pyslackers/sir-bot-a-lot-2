@@ -1,10 +1,11 @@
 import asyncio
 import logging
 
+from aiohttp.web import Response
 from slack.events import Event
+from slack.actions import Action
 from slack.commands import Command
 from slack.exceptions import FailedVerification
-from aiohttp.web import Response
 
 LOG = logging.getLogger(__name__)
 
@@ -60,8 +61,12 @@ def _incoming_message(event, request):
 
     for handler in slack.routers['message'].dispatch(event):
         option = slack.handlers_option[handler]
-        if not option['mention'] or mention:
-            yield asyncio.ensure_future(handler(event, request.app))
+        if option['mention'] and not mention:
+            continue
+        elif option['admin'] and event['user'] not in slack.admins:
+            continue
+
+        yield asyncio.ensure_future(handler(event, request.app))
 
 
 async def incoming_command(request):
@@ -77,6 +82,31 @@ async def incoming_command(request):
     callbacks = list()
     for callback in slack.routers['command'].dispatch(command):
         callbacks.append(asyncio.ensure_future(callback(command, request.app)))
+
+    if callbacks:
+        try:
+            asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
+        except Exception as e:
+            LOG.exception(e)
+            return Response(status=500)
+
+    return Response(status=200)
+
+
+async def incoming_actions(request):
+    slack = request.app.plugins['slack']
+    payload = await request.post()
+    LOG.log(5, 'Incoming action payload: %s', payload)
+
+    try:
+        action = Action.from_http(payload, verification_token=slack.verify)
+    except FailedVerification:
+        return Response(status=401)
+
+    LOG.debug('Incoming action: %s', action)
+    callbacks = list()
+    for callback in slack.routers['action'].dispatch(action):
+        callbacks.append(asyncio.ensure_future(callback(action, request.app)))
 
     if callbacks:
         try:
