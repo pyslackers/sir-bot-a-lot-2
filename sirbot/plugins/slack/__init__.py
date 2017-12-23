@@ -1,1 +1,1 @@
-from .plugin import SlackPlugin
+from .plugin import SlackPlugin  # noQa: F401

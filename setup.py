@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import sys
-import codecs
-
 import pathlib
 import setuptools
 
@@ -11,6 +7,19 @@ if sys.version_info < (3, 6):
     raise RuntimeError('SirBot requires Python 3.6+')
 
 LONG_DESCRIPTION = pathlib.Path('README.rst').read_text('utf-8')
+
+requires = {
+    'install': ['aiohttp'],
+    'slack': ['slack-sansio'],
+    'github': ['gidgethub'],
+    'setup': ['pytest-runner'],
+    'tests': ['flake8', 'pytest>=3.3.0', 'coverage', 'pytest-coverage', 'pytest-asyncio', 'asynctest'],
+    'full': set(),
+    'doc': {'sphinx', 'sphinxcontrib-asyncio', 'sphinxcontrib-napoleon'},
+    'dev': {'tox'},
+}
+requires['dev'].update(*requires.values())
+requires['full'].update(requires['install'], requires['slack'], requires['github'])
 
 
 def find_version():
@@ -22,42 +31,23 @@ def find_version():
     return version
 
 
-def parse_reqs(req_path='./requirements/requirements.txt'):
-    """Recursively parse requirements from nested pip files."""
-    install_requires = []
-    with codecs.open(req_path, 'r') as handle:
-        # remove comments and empty lines
-        lines = (line.strip() for line in handle if line.strip() and not line.startswith('#'))
-        install_requires.extend(lines)
-    return install_requires
-
-
 setuptools.setup(
+    name='sirbot',
     long_description=LONG_DESCRIPTION,
+    description='Rewrite of sir-bot-a-lot',
     keywords=[
         'sirbot',
         'chatbot',
         'bot',
         'slack',
     ],
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and
-    # allow pip to create the appropriate form of executable for the
-    # target platform.
-    # entry_points={
-    #     'console_scripts': [
-    #         'sirbot=sirbot.cli:main'
-    #     ]
-    # },
-    include_package_data=True,
-    install_requires=parse_reqs('requirements.txt'),
+    packages=setuptools.find_packages(),
+    zip_safe=True,
     python_requires='~=3.6',
-    tests_require=[
-        'pytest-runner',
-        'pytest-cov',
-        'pytest-aiohttp',
-        'pytest',
-    ],
+    install_requires=requires['install'],
+    setup_requires=requires['setup'],
+    tests_require=requires['tests'],
+    extras_require=requires,
     # See: http://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -67,15 +57,12 @@ setuptools.setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
-        'Environment :: Console',
     ],
     author=(
         'Ovv <contact@ovv.wtf>',
     ),
-    author_email='pythondev.slack@gmail.com',
-    description='The good Sir Bot-a-lot. An asynchronous python bot framework.',
+    author_email='contact@ovv.wtf',
     license='MIT',
-    name='sir-bot-a-lot',
-    url='https://github.com/pyslackers/sir-bot-a-lot',
+    url='https://github.com/pyslackers/sir-bot-a-lot2',
     version=find_version(),
 )

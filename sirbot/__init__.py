@@ -23,5 +23,5 @@ The good Sir Bot-a-lot. An asynchronous python bot framework.
 #                      /  _____  \   -------  |  `----.|  `--'  |     |  |
 #                     /__/     \__\           |_______| \______/      |__|
 
-from .__version__ import __version__
-from .bot import SirBot
+from .__version__ import __version__  # noQa: F401
+from .bot import SirBot  # noQa: F401

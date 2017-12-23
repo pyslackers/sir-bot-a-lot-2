@@ -1,1 +1,1 @@
-from .plugin import GithubPlugin
+from .plugin import GithubPlugin  # noQa: F401

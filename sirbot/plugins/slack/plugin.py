@@ -57,7 +57,7 @@ class SlackPlugin:
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
         self.routers['command'].register(command, handler)
-    
+
     def on_message(self, pattern, handler, flags=0, channel='*', mention=False, admin=False):
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
@@ -78,5 +78,8 @@ class SlackPlugin:
         self.bot_id = rep['user']['profile']['bot_id']
 
     async def find_bot_user_id(self, app):
-        rep = await self.api.query(url=methods.CHAT_POST_MESSAGE, data={'channel': 'general', 'text': 'Looking for bot id'})
+        rep = await self.api.query(
+            url=methods.CHAT_POST_MESSAGE,
+            data={'channel': 'general', 'text': 'Looking for bot id'}
+        )
         LOG.warning('The BOT_USER_ID is : "%s"', rep['message']['user'])
