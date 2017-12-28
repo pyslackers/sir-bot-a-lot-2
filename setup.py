@@ -12,14 +12,22 @@ requires = {
     'install': ['aiohttp'],
     'slack': ['slack-sansio'],
     'github': ['gidgethub'],
-    'setup': ['pytest-runner'],
-    'tests': ['flake8', 'pytest>=3.3.0', 'coverage', 'pytest-coverage', 'pytest-asyncio', 'asynctest'],
-    'full': set(),
-    'doc': {'sphinx', 'sphinxcontrib-asyncio', 'sphinxcontrib-napoleon'},
-    'dev': {'tox'},
+    'setup': [],
+    'doc': ['sphinx', 'sphinxcontrib-asyncio', 'sphinxcontrib-napoleon'],
+    'tests': ['tox', 'pytest-runner', 'flake8', 'pytest>=3.3.0', 'coverage', 'pytest-coverage', 'pytest-asyncio',
+              'asynctest'],
+    'dev': [],
+    'full': [],
 }
-requires['dev'].update(*requires.values())
-requires['full'].update(requires['install'], requires['slack'], requires['github'])
+
+requires['tests'].extend(requires['doc'])
+
+requires['full'].extend(requires['install'])
+requires['full'].extend(requires['slack'])
+requires['full'].extend(requires['github'])
+
+requires['dev'].extend(requires['tests'])
+requires['dev'].extend(requires['full'])
 
 
 def find_version():
