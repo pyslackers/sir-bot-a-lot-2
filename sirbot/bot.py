@@ -25,7 +25,7 @@ class SirBot(aiohttp.web.Application):
         plugin.load(self)
 
     async def shutdown(self):
-        LOG.info('Stoppping SirBot')
+        LOG.info('Stopping SirBot')
         self.http_session.close()
         await super().shutdown()
         LOG.info('SirBot stopped')
