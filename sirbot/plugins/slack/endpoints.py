@@ -50,11 +50,15 @@ def _incoming_event(event, request):
 
 def _incoming_message(event, request):
     slack = request.app.plugins['slack']
-    if event.get('bot_id') == slack.bot_id or event.get('message', {}).get('bot_id') == slack.bot_id:
+
+    if slack.bot_id and (event.get('bot_id') == slack.bot_id or event.get('message', {}).get('bot_id') == slack.bot_id):
         return
 
     LOG.debug('Incoming message: %s', event)
-    mention = slack.bot_user_id in event.get('text', '') or event['channel'].startswith('D')
+    if slack.bot_user_id:
+        mention = slack.bot_user_id in event.get('text', '') or event['channel'].startswith('D')
+    else:
+        mention = False
 
     if mention and 'text' in event:
         event['text'] = event['text'].strip('<@{}>'.format(slack.bot_user_id)).strip()

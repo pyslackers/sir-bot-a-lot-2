@@ -25,8 +25,9 @@ class SlackPlugin:
         self.bot_user_id = bot_user_id or os.environ.get('SLACK_BOT_USER_ID')
         self.handlers_option = {}
 
-        if not self.bot_user_id and not self.bot_id:
-            LOG.warning('`SLACK_BOT_USER_ID` or `SLACK_BOT_ID` required to use `on_mention` routing.')
+        if not self.bot_user_id:
+            LOG.warning('`SLACK_BOT_USER_ID` not set. It is required for `on mention` routing and discarding '
+                        'message coming from Sir Bot-a-lot to avoid loops.')
 
         self.routers = {
             'event': EventRouter(),
@@ -45,8 +46,6 @@ class SlackPlugin:
 
         if self.bot_user_id and not self.bot_id:
             sirbot.on_startup.append(self.find_bot_id)
-        elif not self.bot_user_id and not self.bot_id:
-            sirbot.on_startup.append(self.find_bot_user_id)
 
     def on_event(self, event_type, handler):
         if not asyncio.iscoroutinefunction(handler):
@@ -76,10 +75,4 @@ class SlackPlugin:
     async def find_bot_id(self, app):
         rep = await self.api.query(url=methods.USERS_INFO, data={'user': self.bot_user_id})
         self.bot_id = rep['user']['profile']['bot_id']
-
-    async def find_bot_user_id(self, app):
-        rep = await self.api.query(
-            url=methods.CHAT_POST_MESSAGE,
-            data={'channel': 'general', 'text': 'Looking for bot id'}
-        )
-        LOG.warning('The BOT_USER_ID is : "%s"', rep['message']['user'])
+        LOG.warning('`SLACK_BOT_ID` not set. For a faster start time set it to: "%s"', self.bot_id)
