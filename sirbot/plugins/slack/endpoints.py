@@ -55,12 +55,13 @@ def _incoming_message(event, request):
         return
 
     LOG.debug('Incoming message: %s', event)
-    if slack.bot_user_id:
-        mention = slack.bot_user_id in event.get('text', '') or event['channel'].startswith('D')
+    text = event.get('text')
+    if slack.bot_user_id and text:
+        mention = slack.bot_user_id in event['text'] or event['channel'].startswith('D')
     else:
         mention = False
 
-    if mention and 'text' in event:
+    if mention and text:
         event['text'] = event['text'].strip('<@{}>'.format(slack.bot_user_id)).strip()
 
     for handler in slack.routers['message'].dispatch(event):
