@@ -2,3 +2,52 @@ Sir-bot-a-lot
 =============
 
 The good Sir Bot-a-lot. An asynchronous python bot framework.
+
+.. image:: https://travis-ci.org/pyslackers/sir-bot-a-lot-2.svg?branch=master
+    :target: https://travis-ci.org/pyslackers/sir-bot-a-lot-2
+    :alt: Travis-ci status
+.. image:: https://badge.fury.io/py/sirbot.svg
+    :target: https://pypi.org/project/sirbot
+    :alt: PyPI status
+
+Installation
+------------
+
+Sir Bot-a-lot is `available on PyPI <https://pypi.org/project/sirbot/>`_.
+
+.. code::
+
+    $ pip install sirbot
+
+Quickstart
+----------
+
+.. code-block:: python
+
+    from sirbot import SirBot
+
+    bot = SirBot()
+
+    plugin = MyPlugin()
+    bot.load(plugin)
+
+    bot.start(host='0.0.0.0', port=8000)
+
+Plugins
+-------
+
+Sir Bot-a-lot provide some plugins to connect to various services:
+
+* ``sirbot.plugins.github.GithubPlugin`` For `Github <https://www.github.com>`_.
+* ``sirbot.plugins.slack.SlackPlugin`` For `Slack <https://www.slack.com>`_.
+
+Changelog
+---------
+
+dev
+`````
+
+0.0.1
+```````
+
+* Initial development release
