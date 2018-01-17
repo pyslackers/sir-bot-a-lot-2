@@ -42,7 +42,7 @@ class SlackPlugin:
 
         sirbot.router.add_route('POST', '/slack/events', endpoints.incoming_event)
         sirbot.router.add_route('POST', '/slack/commands', endpoints.incoming_command)
-        sirbot.router.add_route('POST', '/slack/actions', endpoints.incoming_actions)
+        sirbot.router.add_route('POST', '/slack/actions', endpoints.incoming_action)
 
         if self.bot_user_id and not self.bot_id:
             sirbot.on_startup.append(self.find_bot_id)

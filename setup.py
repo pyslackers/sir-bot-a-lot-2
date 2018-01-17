@@ -15,7 +15,7 @@ requires = {
     'setup': [],
     'doc': ['sphinx', 'sphinxcontrib-asyncio', 'sphinxcontrib-napoleon'],
     'tests': ['tox', 'pytest-runner', 'flake8', 'pytest>=3.3.0', 'coverage', 'pytest-coverage', 'pytest-asyncio',
-              'asynctest'],
+              'asynctest', 'pytest-aiohttp', 'slack-sansio[dev]'],
     'dev': [],
     'full': [],
 }

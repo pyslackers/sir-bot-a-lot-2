@@ -1,0 +1,8 @@
+{
+  "Request method": "POST",
+  "content-type": "application/json",
+  "User-Agent": "GitHub-Hookshot/c494ff1",
+  "X-GitHub-Delivery": "7053c2a0-f9af-11e7-8327-11359f7e132a",
+  "X-GitHub-Event": "pull_request",
+  "X-Hub-Signature": "sha1=3f75ed843d11ad6735202b9da6a2d4605d62e9f6"
+}

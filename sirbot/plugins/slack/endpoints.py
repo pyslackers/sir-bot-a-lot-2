@@ -33,7 +33,9 @@ async def incoming_event(request):
 
     if callbacks:
         try:
-            asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
+            done, _ = await asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
+            for f in done:
+                f.result()
         except Exception as e:
             LOG.exception(e)
             return Response(status=500)
@@ -90,7 +92,9 @@ async def incoming_command(request):
 
     if callbacks:
         try:
-            asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
+            done, _ = await asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
+            for f in done:
+                f.result()
         except Exception as e:
             LOG.exception(e)
             return Response(status=500)
@@ -98,7 +102,7 @@ async def incoming_command(request):
     return Response(status=200)
 
 
-async def incoming_actions(request):
+async def incoming_action(request):
     slack = request.app.plugins['slack']
     payload = await request.post()
     LOG.log(5, 'Incoming action payload: %s', payload)
@@ -115,7 +119,9 @@ async def incoming_actions(request):
 
     if callbacks:
         try:
-            asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
+            done, _ = await asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
+            for f in done:
+                f.result()
         except Exception as e:
             LOG.exception(e)
             return Response(status=500)

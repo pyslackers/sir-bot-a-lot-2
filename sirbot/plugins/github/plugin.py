@@ -33,8 +33,9 @@ async def dispatch(request):
     try:
         event = Event.from_http(request.headers, payload, secret=github.verify)
         await github.router.dispatch(event, app=request.app)
-    except ValidationFailure:
+    except ValidationFailure as e:
         LOG.debug('Github webhook failed verification: %s, %s', request.headers, payload)
+        return Response(status=401)
     except Exception as e:
         LOG.exception(e)
         return Response(status=500)
