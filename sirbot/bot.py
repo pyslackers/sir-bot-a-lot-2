@@ -11,26 +11,34 @@ class SirBot(aiohttp.web.Application):
     def __init__(self, user_agent=None, **kwargs):
         super().__init__(**kwargs)
 
-        self.http_session = aiohttp.ClientSession(loop=kwargs.get('loop') or asyncio.get_event_loop())
-        self.user_agent = user_agent or 'sir-bot-a-lot'
         self.router.add_route('GET', '/sirbot/plugins', endpoints.plugins)
 
         self['plugins'] = dict()
+        self['http_session'] = aiohttp.ClientSession(loop=kwargs.get('loop') or asyncio.get_event_loop())
+        self['user_agent'] = user_agent or 'sir-bot-a-lot'
+
+        self.on_shutdown.append(self.stop)
 
     def start(self, **kwargs):
         LOG.info('Starting SirBot')
         aiohttp.web.run_app(self, **kwargs)
 
-    def load_plugin(self, plugin):
-        self['plugins'][plugin.__name__] = plugin
+    def load_plugin(self, plugin, name=None):
+        name = name or plugin.__name__
+        self['plugins'][name] = plugin
         plugin.load(self)
 
-    async def shutdown(self):
-        LOG.info('Stopping SirBot')
-        self.http_session.close()
-        await super().shutdown()
-        LOG.info('SirBot stopped')
+    async def stop(self, sirbot):
+        self['http_session'].close()
 
     @property
     def plugins(self):
         return self['plugins']
+
+    @property
+    def http_session(self):
+        return self['http_session']
+
+    @property
+    def user_agent(self):
+        return self['user_agent']

@@ -43,14 +43,25 @@ Sir Bot-a-lot provide some plugins to connect to various services:
 
 * ``sirbot.plugins.github.GithubPlugin`` For `Github <https://www.github.com>`_.
 * ``sirbot.plugins.slack.SlackPlugin`` For `Slack <https://www.slack.com>`_.
+* ``sirbot.plugins.postgres.PgPlugin`` For ``PostgreSQL <https://www.postgresql.org/>`_.
 
 Changelog
 ---------
 
 dev
+```
+
+0.0.3
 `````
 
-0.0.1
-```````
+* Initial release of ``sirbot.plugins.postgres.PgPlugin``.
 
-* Initial development release
+0.0.2
+`````
+
+* Various bugfix in ``SlackPlugin``.
+
+0.0.1
+`````
+
+* Initial development release.

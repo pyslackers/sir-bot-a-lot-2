@@ -9,25 +9,16 @@ if sys.version_info < (3, 6):
 LONG_DESCRIPTION = pathlib.Path('README.rst').read_text('utf-8')
 
 requires = {
-    'install': ['aiohttp'],
-    'slack': ['slack-sansio'],
-    'github': ['gidgethub'],
-    'setup': [],
+    'install': ['aiohttp', 'aiofiles', 'asyncpg', 'asyncio-contextmanager', 'slack-sansio', 'gidgethub', 'ujson'],
     'doc': ['sphinx', 'sphinxcontrib-asyncio', 'sphinxcontrib-napoleon'],
     'tests': ['tox', 'pytest-runner', 'flake8', 'pytest>=3.3.0', 'coverage', 'pytest-coverage', 'pytest-asyncio',
               'asynctest', 'pytest-aiohttp', 'slack-sansio[dev]'],
-    'dev': [],
-    'full': [],
+    'full': []
 }
 
 requires['tests'].extend(requires['doc'])
-
 requires['full'].extend(requires['install'])
-requires['full'].extend(requires['slack'])
-requires['full'].extend(requires['github'])
-
-requires['dev'].extend(requires['tests'])
-requires['dev'].extend(requires['full'])
+requires['full'].extend(requires['tests'])
 
 
 def find_version():
@@ -53,7 +44,7 @@ setuptools.setup(
     zip_safe=True,
     python_requires='~=3.6',
     install_requires=requires['install'],
-    setup_requires=requires['setup'],
+    setup_requires=[],
     tests_require=requires['tests'],
     extras_require=requires,
     # See: http://pypi.python.org/pypi?%3Aaction=list_classifiers
