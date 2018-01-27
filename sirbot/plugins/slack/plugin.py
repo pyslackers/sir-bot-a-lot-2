@@ -57,7 +57,7 @@ class SlackPlugin:
             handler = asyncio.coroutine(handler)
         self.routers['command'].register(command, handler)
 
-    def on_message(self, pattern, handler, flags=0, channel='*', mention=False, admin=False):
+    def on_message(self, pattern, handler, mention=False, admin=False, **kwargs):
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
 
@@ -65,7 +65,7 @@ class SlackPlugin:
             LOG.warning('Slack admins ids are not set. Admin limited endpoint will not work.')
 
         self.handlers_option[handler] = {'mention': mention, 'admin': admin}
-        self.routers['message'].register(pattern=pattern, handler=handler, flags=flags, channel=channel)
+        self.routers['message'].register(pattern=pattern, handler=handler, **kwargs)
 
     def on_action(self, action, handler, name='*'):
         if not asyncio.iscoroutinefunction(handler):
