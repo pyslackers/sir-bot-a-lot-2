@@ -9,7 +9,8 @@ if sys.version_info < (3, 6):
 LONG_DESCRIPTION = pathlib.Path('README.rst').read_text('utf-8')
 
 requires = {
-    'install': ['aiohttp', 'aiofiles', 'asyncpg', 'asyncio-contextmanager', 'slack-sansio', 'gidgethub', 'ujson'],
+    'install': ['aiohttp', 'aiofiles', 'asyncpg', 'asyncio-contextmanager', 'slack-sansio', 'gidgethub', 'ujson',
+                'apscheduler'],
     'doc': ['sphinx', 'sphinxcontrib-asyncio', 'sphinxcontrib-napoleon'],
     'tests': ['tox', 'pytest-runner', 'flake8', 'pytest>=3.3.0', 'coverage', 'pytest-coverage', 'pytest-asyncio',
               'asynctest', 'pytest-aiohttp', 'slack-sansio[dev]'],
