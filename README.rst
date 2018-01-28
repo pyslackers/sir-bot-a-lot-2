@@ -56,6 +56,8 @@ dev
 `````
 
 * Initial release of ``sirbot.plugins.apscheduler.APSchedulerPlugin``.
+* Routing on message subtype for ``sirbot.plugins.slack.SlackPlugin``.
+* ``wait`` option for slack endpoint to wait the end of the handlers before responding.
 
 0.0.3
 `````
