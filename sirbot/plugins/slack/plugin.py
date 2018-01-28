@@ -47,30 +47,33 @@ class SlackPlugin:
         if self.bot_user_id and not self.bot_id:
             sirbot.on_startup.append(self.find_bot_id)
 
-    def on_event(self, event_type, handler):
+    def on_event(self, event_type, handler, wait=True):
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
-        self.routers['event'].register(event_type, handler)
+        configuration = {'wait': wait}
+        self.routers['event'].register(event_type, (handler, configuration))
 
-    def on_command(self, command, handler):
+    def on_command(self, command, handler, wait=True):
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
-        self.routers['command'].register(command, handler)
+        configuration = {'wait': wait}
+        self.routers['command'].register(command, (handler, configuration))
 
-    def on_message(self, pattern, handler, mention=False, admin=False, **kwargs):
+    def on_message(self, pattern, handler, mention=False, admin=False, wait=True, **kwargs):
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
 
         if admin and not self.admins:
             LOG.warning('Slack admins ids are not set. Admin limited endpoint will not work.')
 
-        self.handlers_option[handler] = {'mention': mention, 'admin': admin}
-        self.routers['message'].register(pattern=pattern, handler=handler, **kwargs)
+        configuration = {'mention': mention, 'admin': admin, 'wait': wait}
+        self.routers['message'].register(pattern=pattern, handler=(handler, configuration), **kwargs)
 
-    def on_action(self, action, handler, name='*'):
+    def on_action(self, action, handler, name='*', wait=True):
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
-        self.routers['action'].register(action, handler, name)
+        configuration = {'wait': wait}
+        self.routers['action'].register(action, (handler, configuration), name)
 
     async def find_bot_id(self, app):
         rep = await self.api.query(url=methods.USERS_INFO, data={'user': self.bot_user_id})

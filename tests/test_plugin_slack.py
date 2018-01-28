@@ -85,9 +85,11 @@ class TestPluginSlack:
         bot['plugins']['slack'].on_event('team_join', handler)
         bot['plugins']['slack'].on_event('team_join', handler2)
 
-        assert bot['plugins']['slack'].routers['event']._routes['team_join']['*']['*'][0] is handler
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['event']._routes['team_join']['*']['*'][0])
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['event']._routes['team_join']['*']['*'][1])
+        assert bot['plugins']['slack'].routers['event']._routes['team_join']['*']['*'][0][0] is handler
+        assert asyncio.iscoroutinefunction(
+            bot['plugins']['slack'].routers['event']._routes['team_join']['*']['*'][0][0])
+        assert asyncio.iscoroutinefunction(
+            bot['plugins']['slack'].routers['event']._routes['team_join']['*']['*'][1][0])
 
     async def test_register_command(self, bot):
         async def handler():
@@ -99,9 +101,9 @@ class TestPluginSlack:
         bot['plugins']['slack'].on_command('/hello', handler)
         bot['plugins']['slack'].on_command('/hello', handler2)
 
-        assert bot['plugins']['slack'].routers['command']._routes['/hello'][0] is handler
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['command']._routes['/hello'][0])
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['command']._routes['/hello'][1])
+        assert bot['plugins']['slack'].routers['command']._routes['/hello'][0][0] is handler
+        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['command']._routes['/hello'][0][0])
+        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['command']._routes['/hello'][1][0])
 
     async def test_register_message(self, bot):
         async def handler():
@@ -114,23 +116,11 @@ class TestPluginSlack:
         bot['plugins']['slack'].on_message(msg, handler)
         bot['plugins']['slack'].on_message(msg, handler2)
         msg_compile = re.compile(msg)
-        assert bot['plugins']['slack'].routers['message']._routes['*'][msg_compile][0] is handler
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['message']._routes['*'][msg_compile][0])
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['message']._routes['*'][msg_compile][1])
-        assert len(bot['plugins']['slack'].handlers_option) == 2
-
-    async def test_register_admin_message(self, bot):
-        async def handler():
-            pass
-
-        # TODO: FIX ME
-        bot['plugins']['slack'].on_message('hello', handler, admin=True)
-        assert bot['plugins']['slack'].handlers_option[handler].get('admin') is True
-        assert bot['plugins']['slack'].handlers_option[handler].get('mention') is False
-
-        bot['plugins']['slack'].on_message('hello', handler, mention=True)
-        assert bot['plugins']['slack'].handlers_option[handler].get('admin') is False
-        assert bot['plugins']['slack'].handlers_option[handler].get('mention') is True
+        assert bot['plugins']['slack'].routers['message']._routes['*'][None][msg_compile][0][0] is handler
+        assert asyncio.iscoroutinefunction(
+            bot['plugins']['slack'].routers['message']._routes['*'][None][msg_compile][0][0])
+        assert asyncio.iscoroutinefunction(
+            bot['plugins']['slack'].routers['message']._routes['*'][None][msg_compile][1][0])
 
     async def test_register_admin_message_no_admin(self, caplog):
         async def handler():
@@ -151,9 +141,9 @@ class TestPluginSlack:
         bot['plugins']['slack'].on_action('hello', handler)
         bot['plugins']['slack'].on_action('hello', handler2)
 
-        assert bot['plugins']['slack'].routers['action']._routes['hello']['*'][0] is handler
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['action']._routes['hello']['*'][0])
-        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['action']._routes['hello']['*'][1])
+        assert bot['plugins']['slack'].routers['action']._routes['hello']['*'][0][0] is handler
+        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['action']._routes['hello']['*'][0][0])
+        assert asyncio.iscoroutinefunction(bot['plugins']['slack'].routers['action']._routes['hello']['*'][1][0])
 
     async def test_find_bot_id(self, bot, test_server, find_bot_id_query):
         await test_server(bot)
@@ -207,7 +197,8 @@ class TestPluginSlackEndpoints:
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
-        bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(return_value=[handler, ])
+        bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
+        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/events', json=slack_event_only)
@@ -217,7 +208,8 @@ class TestPluginSlackEndpoints:
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
-        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(return_value=[handler, ])
+        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(
+            return_value=[(handler, {'wait': True, 'mention': False, 'admin': False}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/events', json=slack_message)
@@ -227,7 +219,7 @@ class TestPluginSlackEndpoints:
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
-        bot['plugins']['slack'].routers['command'].dispatch = mock.MagicMock(return_value=[handler, ])
+        bot['plugins']['slack'].routers['command'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/commands', data=slack_command)
@@ -237,7 +229,7 @@ class TestPluginSlackEndpoints:
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
-        bot['plugins']['slack'].routers['action'].dispatch = mock.MagicMock(return_value=[handler, ])
+        bot['plugins']['slack'].routers['action'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/actions', data=slack_action)
@@ -248,7 +240,7 @@ class TestPluginSlackEndpoints:
             assert app is bot
             assert isinstance(event, slack.events.Event)
 
-        bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(return_value=[handler, ])
+        bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/events', json=slack_event)
@@ -259,8 +251,8 @@ class TestPluginSlackEndpoints:
             assert app is bot
             assert isinstance(event, slack.events.Message)
 
-        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(return_value=[handler, ])
-        bot['plugins']['slack'].handlers_option[handler] = {'mention': False, 'admin': False}
+        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(
+            return_value=[(handler, {'wait': True, 'mention': False, 'admin': False}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/events', json=slack_message)
@@ -271,7 +263,7 @@ class TestPluginSlackEndpoints:
             assert app is bot
             assert isinstance(command, slack.commands.Command)
 
-        bot['plugins']['slack'].routers['command'].dispatch = mock.MagicMock(return_value=[handler, ])
+        bot['plugins']['slack'].routers['command'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/commands', data=slack_command)
@@ -282,7 +274,7 @@ class TestPluginSlackEndpoints:
             assert app is bot
             assert isinstance(action, slack.actions.Action)
 
-        bot['plugins']['slack'].routers['action'].dispatch = mock.MagicMock(return_value=[handler, ])
+        bot['plugins']['slack'].routers['action'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
 
         client = await test_client(bot)
         r = await client.post('/slack/actions', data=slack_action)

@@ -27,34 +27,16 @@ async def incoming_event(request):
         return Response(status=401)
 
     if event['type'] == 'message':
-        callbacks = list(_incoming_message(event, request))
+        return await _incoming_message(event, request)
     else:
-        callbacks = list(_incoming_event(event, request))
-
-    if callbacks:
-        try:
-            done, _ = await asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
-            for f in done:
-                f.result()
-        except Exception as e:
-            LOG.exception(e)
-            return Response(status=500)
-
-    return Response(status=200)
+        return await _wait_for_handler(slack.routers['event'], event, request.app)
 
 
-def _incoming_event(event, request):
-    LOG.debug('Incoming event: %s', event)
-    slack = request.app.plugins['slack']
-    for handler in slack.routers['event'].dispatch(event):
-        yield asyncio.ensure_future(handler(event, request.app))
-
-
-def _incoming_message(event, request):
+async def _incoming_message(event, request):
     slack = request.app.plugins['slack']
 
     if slack.bot_id and (event.get('bot_id') == slack.bot_id or event.get('message', {}).get('bot_id') == slack.bot_id):
-        return
+        return Response(status=200)
 
     LOG.debug('Incoming message: %s', event)
     text = event.get('text')
@@ -64,16 +46,22 @@ def _incoming_message(event, request):
         mention = False
 
     if mention and text:
-        event['text'] = event['text'].strip('<@{}>'.format(slack.bot_user_id)).strip()
+        event['text'] = event['text'].strip(f'<@{slack.bot_user_id}>').strip()
 
-    for handler in slack.routers['message'].dispatch(event):
-        option = slack.handlers_option[handler]
-        if option['mention'] and not mention:
+    coro = []
+    for handler, configuration in slack.routers['message'].dispatch(event):
+        if configuration['mention'] and not mention:
             continue
-        elif option['admin'] and event['user'] not in slack.admins:
+        elif configuration['admin'] and event['user'] not in slack.admins:
             continue
 
-        yield asyncio.ensure_future(handler(event, request.app))
+        f = asyncio.ensure_future(handler(event, request.app))
+        if configuration['wait']:
+            coro.append(f)
+        else:
+            f.add_done_callback(_callback)
+
+    return await _run_coroutines(coro)
 
 
 async def incoming_command(request):
@@ -86,20 +74,7 @@ async def incoming_command(request):
         return Response(status=401)
 
     LOG.debug('Incoming command: %s', command)
-    callbacks = list()
-    for callback in slack.routers['command'].dispatch(command):
-        callbacks.append(asyncio.ensure_future(callback(command, request.app)))
-
-    if callbacks:
-        try:
-            done, _ = await asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
-            for f in done:
-                f.result()
-        except Exception as e:
-            LOG.exception(e)
-            return Response(status=500)
-
-    return Response(status=200)
+    return await _wait_for_handler(slack.routers['command'], command, request.app)
 
 
 async def incoming_action(request):
@@ -113,17 +88,36 @@ async def incoming_action(request):
         return Response(status=401)
 
     LOG.debug('Incoming action: %s', action)
-    callbacks = list()
-    for callback in slack.routers['action'].dispatch(action):
-        callbacks.append(asyncio.ensure_future(callback(action, request.app)))
+    return await _wait_for_handler(slack.routers['action'], action, request.app)
 
-    if callbacks:
-        try:
-            done, _ = await asyncio.wait(callbacks, return_when=asyncio.ALL_COMPLETED)
-            for f in done:
+
+def _callback(f):
+    try:
+        f.result()
+    except Exception as e:
+        LOG.exception(e)
+
+
+async def _wait_for_handler(router, event, app):
+    coro = list()
+    for handler, configuration in router.dispatch(event):
+        f = asyncio.ensure_future(handler(event, app))
+        if configuration['wait']:
+            coro.append(f)
+        else:
+            f.add_done_callback(_callback)
+
+    return await _run_coroutines(coro)
+
+
+async def _run_coroutines(coroutines=None):
+    try:
+        if coroutines:
+            futures, _ = await asyncio.wait(coroutines, return_when=asyncio.ALL_COMPLETED)
+            for f in futures:
                 f.result()
-        except Exception as e:
-            LOG.exception(e)
-            return Response(status=500)
+    except Exception as e:
+        LOG.exception(e)
+        return Response(status=500)
 
     return Response(status=200)
