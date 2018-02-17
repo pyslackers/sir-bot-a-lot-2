@@ -38,7 +38,6 @@ class TestSirBot:
         bot = SirBot()
         with pytest.raises(AttributeError):
             bot.load_plugin(MyPlugin())
-        await bot.shutdown()
 
 
 class TestEndpoints:

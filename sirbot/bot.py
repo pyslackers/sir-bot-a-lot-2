@@ -29,7 +29,7 @@ class SirBot(aiohttp.web.Application):
         plugin.load(self)
 
     async def stop(self, sirbot):
-        self['http_session'].close()
+        await self['http_session'].close()
 
     @property
     def plugins(self):
