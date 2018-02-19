@@ -42,14 +42,14 @@ class PgPlugin:
 
     async def migrate(self):
         LOG.info('Start of database migration')
-        current_version = self.version.split('.')
+        current_version = [int(n) for n in self.version.split('.')]
         async with self.connection() as connection:
             old_version = await self._check_database_version(connection)
 
             async with connection.transaction():
                 if old_version is None:
                     await self._init_database(connection)
-                    old_version = (0, 0, 0)
+                    old_version = [0, 0, 0]
 
                 if old_version != current_version:
                     for version in self._find_update_version(start=old_version, end=current_version):
@@ -62,11 +62,11 @@ class PgPlugin:
         if os.path.exists(self.sql_migration_directory):
             for file in os.listdir(self.sql_migration_directory):
                 name, _ = os.path.splitext(file)
-                file_version = name.split('.')
+                file_version = [int(n) for n in name.split('.')]
                 if end >= file_version > start:
                     files.append(file_version)
             files = sorted(files)
-        LOG.debug('Database migration versions: %s', files)
+        LOG.debug('Database migration versions: %s', ['.'.join(str(l) for l in f) for f in files])
         return files
 
     async def _init_database(self, connection):
@@ -76,10 +76,10 @@ class PgPlugin:
                           INSERT INTO metadata (db_version) VALUES ('0.0.0');
         ''')
         if os.path.exists(os.path.join(self.sql_migration_directory, 'init.sql')):
-            await self._execute_sql_file(connection, 'init')
+            await self._execute_sql_file(connection, ('init', ))
 
     async def _execute_sql_file(self, connection, version):
-        LOG.debug('Database migration to version: %s', version)
+        LOG.debug('Database migration to version %s: STARTED', '.'.join(str(l) for l in version))
         if version == 'init':
             file = 'init.sql'
         else:
@@ -87,13 +87,13 @@ class PgPlugin:
 
         async with aiofiles.open(os.path.join(self.sql_migration_directory, file), mode='r') as f:
             await connection.execute((await f.read()))
-        LOG.debug('Database migration to version: %s OK', version)
+        LOG.debug('Database migration to version %s: OK', '.'.join(str(l) for l in version))
 
     @staticmethod
     async def _check_database_version(connection):
         try:
             metadata = await connection.fetchrow('''SELECT * FROM metadata''')
-            return metadata['db_version'].split('.')
+            return [int(n) for n in metadata['db_version'].split('.')]
         except asyncpg.exceptions.UndefinedTableError:
             LOG.debug('No "metadata" table found in database')
 
