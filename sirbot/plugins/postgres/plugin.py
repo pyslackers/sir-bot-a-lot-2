@@ -99,7 +99,7 @@ class PgPlugin:
 
     @staticmethod
     async def _update_db_version(connection, version):
-        await connection.execute('''UPDATE metadata SET db_version=$1''', '.'.join(version))
+        await connection.execute('''UPDATE metadata SET db_version=$1''', '.'.join(str(l) for l in version))
 
     async def _init_connection(self, connection):
         await connection.set_type_codec(
