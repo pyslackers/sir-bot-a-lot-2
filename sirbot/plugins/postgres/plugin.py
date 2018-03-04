@@ -46,21 +46,25 @@ class PgPlugin:
         async with self.connection() as connection:
             old_version = await self._check_database_version(connection)
 
-            async with connection.transaction():
-                if old_version is None:
-                    await self._init_database(connection)
-                    old_version = [0, 0, 0]
+            if current_version != old_version:
+                async with connection.transaction():
+                    if old_version is None:
+                        await self._init_database(connection)
+                        old_version = [0, 0, 0]
 
-                if old_version != current_version:
                     for version in self._find_update_version(start=old_version, end=current_version):
                         await self._execute_sql_file(connection, version)
-                await self._update_db_version(connection, current_version)
-                LOG.info('End of database migration')
+
+                    await self._update_db_version(connection, current_version)
+                    LOG.info('End of database migration')
 
     def _find_update_version(self, start, end):
         files = []
         if os.path.exists(self.sql_migration_directory):
             for file in os.listdir(self.sql_migration_directory):
+                if file == 'init.sql':
+                    continue
+
                 name, _ = os.path.splitext(file)
                 file_version = [int(n) for n in name.split('.')]
                 if end >= file_version > start:
@@ -79,15 +83,16 @@ class PgPlugin:
             await self._execute_sql_file(connection, ('init', ))
 
     async def _execute_sql_file(self, connection, version):
-        LOG.debug('Database migration to version %s: STARTED', '.'.join(str(l) for l in version))
+        version_string = '.'.join(str(l) for l in version)
+        LOG.debug('Database migration to version %s: STARTED', version_string)
         if version == 'init':
             file = 'init.sql'
         else:
-            file = '{}.sql'.format('.'.join(version))
+            file = f'{version_string}.sql'
 
         async with aiofiles.open(os.path.join(self.sql_migration_directory, file), mode='r') as f:
             await connection.execute((await f.read()))
-        LOG.debug('Database migration to version %s: OK', '.'.join(str(l) for l in version))
+        LOG.debug('Database migration to version %s: OK', version_string)
 
     @staticmethod
     async def _check_database_version(connection):
