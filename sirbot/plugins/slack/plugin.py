@@ -14,6 +14,19 @@ LOG = logging.getLogger(__name__)
 
 
 class SlackPlugin:
+    """
+    Slack plugin.
+
+    Handle communication from / to slack
+
+    Args:
+        token: slack authentication token (environment variable: `SLACK_TOKEN`).
+        verify: slack verification token (environment variable: `SLACK_VERIFY`).
+        bot_id: bot id (environment variable: `SLACK_BOT_ID`).
+        bot_user_id: user id of the bot (environment variable: `SLACK_BOT_USER_ID`).
+        admins: list of slack admins user id (environment variable: `SLACK_ADMINS`).
+    """
+
     __name__ = 'slack'
 
     def __init__(self, *, token=None, verify=None, bot_id=None, bot_user_id=None, admins=None):
@@ -48,18 +61,45 @@ class SlackPlugin:
             sirbot.on_startup.append(self.find_bot_id)
 
     def on_event(self, event_type, handler, wait=True):
+        """
+        Register handler for an event
+
+        Args:
+            event_type: Incoming event type
+            handler: Handler to call
+            wait: Wait for handler execution before responding to the slack API.
+        """
+
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
         configuration = {'wait': wait}
         self.routers['event'].register(event_type, (handler, configuration))
 
     def on_command(self, command, handler, wait=True):
+        """
+        Register handler for a command
+
+        Args:
+            command: Incoming command
+            handler: Handler to call
+            wait: Wait for handler execution before responding to the slack API.
+        """
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
         configuration = {'wait': wait}
         self.routers['command'].register(command, (handler, configuration))
 
     def on_message(self, pattern, handler, mention=False, admin=False, wait=True, **kwargs):
+        """
+        Register handler for a message
+
+        Args:
+            pattern: Pattern on which to match incoming message.
+            handler: Handler to call
+            mention: Only trigger handler when the bot is mentioned
+            admin: Only trigger handler if posted by an admin
+            wait: Wait for handler execution before responding to the slack API.
+        """
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
 
@@ -70,6 +110,15 @@ class SlackPlugin:
         self.routers['message'].register(pattern=pattern, handler=(handler, configuration), **kwargs)
 
     def on_action(self, action, handler, name='*', wait=True):
+        """
+        Register handler for an action
+
+        Args:
+            action: `callback_id` of the incoming action
+            handler: Handler to call
+            name: Choice name of the action
+            wait: Wait for handler execution before responding to the slack API.
+        """
         if not asyncio.iscoroutinefunction(handler):
             handler = asyncio.coroutine(handler)
         configuration = {'wait': wait}
