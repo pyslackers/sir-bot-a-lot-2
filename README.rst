@@ -9,6 +9,9 @@ The good Sir Bot-a-lot. An asynchronous python bot framework.
 .. image:: https://badge.fury.io/py/sirbot.svg
     :target: https://pypi.org/project/sirbot
     :alt: PyPI status
+.. image:: https://readthedocs.org/projects/sir-bot-a-lot/badge/?version=latest
+    :target: http://sir-bot-a-lot.readthedocs.io/en/latest
+    :alt: Documentation status
 .. image:: https://coveralls.io/repos/github/pyslackers/sir-bot-a-lot-2/badge.svg?branch=master
     :target: https://coveralls.io/github/pyslackers/sir-bot-a-lot-2?branch=master
     :alt: Coverage status
