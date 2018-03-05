@@ -53,7 +53,11 @@ Changelog
 dev
 ```
 
+0.0.5
+`````
+
 * Initial release of ``sirbot.plugins.readthedocs.RTDPlugin``.
+* SQL update fix.
 
 0.0.4
 `````
