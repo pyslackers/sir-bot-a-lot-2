@@ -6,7 +6,6 @@ from sirbot.plugins.readthedocs import RTDPlugin
 
 
 @pytest.fixture
-@pytest.mark.asyncio
 async def bot():
     b = SirBot()
     b.load_plugin(RTDPlugin())

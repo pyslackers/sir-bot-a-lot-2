@@ -5,7 +5,6 @@ from sirbot.plugins.apscheduler import APSchedulerPlugin
 
 
 @pytest.fixture
-@pytest.mark.asyncio
 async def bot():
     b = SirBot()
     b.load_plugin(APSchedulerPlugin())

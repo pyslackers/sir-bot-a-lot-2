@@ -11,7 +11,6 @@ from sirbot.plugins.slack import SlackPlugin
 
 
 @pytest.fixture
-@pytest.mark.asyncio
 async def bot():
     b = SirBot()
     b.load_plugin(SlackPlugin(token='foo', verify='supersecuretoken', bot_user_id='baz', bot_id='boo',

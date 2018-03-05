@@ -17,10 +17,12 @@ class PgPlugin:
         self.pool = None
         self.version = version
 
-        if sql_migration_directory and not os.path.isabs(sql_migration_directory):
-            self.sql_migration_directory = os.path.abspath(sql_migration_directory)
-        else:
+        if sql_migration_directory:
+            if not os.path.isabs(sql_migration_directory):
+                sql_migration_directory = os.path.abspath(sql_migration_directory)
             self.sql_migration_directory = sql_migration_directory
+        else:
+            self.sql_migration_directory = None
 
     def load(self, sirbot):
         LOG.info('Loading postgres plugin')
@@ -60,17 +62,17 @@ class PgPlugin:
 
     def _find_update_version(self, start, end):
         files = []
-        if os.path.exists(self.sql_migration_directory):
-            for file in os.listdir(self.sql_migration_directory):
-                if file == 'init.sql':
-                    continue
+        for file in os.listdir(self.sql_migration_directory):
+            if file == 'init.sql':
+                continue
 
-                name, _ = os.path.splitext(file)
-                file_version = [int(n) for n in name.split('.')]
-                if end >= file_version > start:
-                    files.append(file_version)
-            files = sorted(files)
-        LOG.debug('Database migration versions: %s', ['.'.join(str(l) for l in f) for f in files])
+            name, _ = os.path.splitext(file)
+            file_version = [int(n) for n in name.split('.')]
+            if end >= file_version > start:
+                files.append(file_version)
+        files = sorted(files)
+        files = ['.'.join(str(l) for l in f) for f in files]
+        LOG.debug('Database migration versions: %s', files)
         return files
 
     async def _init_database(self, connection):
@@ -80,19 +82,13 @@ class PgPlugin:
                           INSERT INTO metadata (db_version) VALUES ('0.0.0');
         ''')
         if os.path.exists(os.path.join(self.sql_migration_directory, 'init.sql')):
-            await self._execute_sql_file(connection, ('init', ))
+            await self._execute_sql_file(connection, 'init')
 
     async def _execute_sql_file(self, connection, version):
-        version_string = '.'.join(str(l) for l in version)
-        LOG.debug('Database migration to version %s: STARTED', version_string)
-        if version == 'init':
-            file = 'init.sql'
-        else:
-            file = f'{version_string}.sql'
-
-        async with aiofiles.open(os.path.join(self.sql_migration_directory, file), mode='r') as f:
+        LOG.debug('Database migration to version %s: STARTED', version)
+        async with aiofiles.open(os.path.join(self.sql_migration_directory, f'{version}.sql'), mode='r') as f:
             await connection.execute((await f.read()))
-        LOG.debug('Database migration to version %s: OK', version_string)
+        LOG.debug('Database migration to version %s: OK', version)
 
     @staticmethod
     async def _check_database_version(connection):
