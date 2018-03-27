@@ -45,8 +45,9 @@ async def _incoming_message(event, request):
     else:
         mention = False
 
-    if mention and text:
-        event['text'] = event['text'].strip(f'<@{slack.bot_user_id}>').strip()
+    if mention and text and text.startswith(f'<@{slack.bot_user_id}>'):
+        event['text'] = event['text'][len(f'<@{slack.bot_user_id}>'):]
+        event['text'] = event['text'].strip()
 
     coro = []
     for handler, configuration in slack.routers['message'].dispatch(event):
