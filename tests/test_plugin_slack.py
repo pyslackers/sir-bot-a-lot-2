@@ -356,3 +356,14 @@ class TestPluginSlackEndpoints:
         r = await client.post('/slack/events', json=slack_message)
         assert r.status == 200
         assert handler.call_count == 0
+
+    @pytest.mark.parametrize('slack_message', ('mention', ), indirect=True)
+    async def test_message_mention_strip_bot(self, bot, test_client, slack_message):
+        def handler(message, app):
+            assert message['text'] == 'hello world'
+
+        bot['plugins']['slack'].bot_user_id = 'U0AAA0A00'
+        bot['plugins']['slack'].on_message('hello world', handler, mention=True)
+        client = await test_client(bot)
+        r = await client.post('/slack/events', json=slack_message)
+        assert r.status == 200
