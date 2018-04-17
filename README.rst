@@ -56,6 +56,8 @@ Changelog
 dev
 ```
 
+* ``sirbot.plugins.slack.SlackPlugin`` allow returning ``aiohttp.web.Response`` in handlers.
+
 0.0.5
 `````
 

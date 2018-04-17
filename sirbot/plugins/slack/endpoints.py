@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import aiohttp.web
 
 from aiohttp.web import Response
 from slack.events import Event
@@ -29,7 +30,11 @@ async def incoming_event(request):
     if event['type'] == 'message':
         return await _incoming_message(event, request)
     else:
-        return await _wait_for_handler(slack.routers['event'], event, request.app)
+        futures = list(_dispatch(slack.routers['event'], event, request.app))
+        if futures:
+            return await _wait_and_check_result(futures)
+
+    return Response(status=200)
 
 
 async def _incoming_message(event, request):
@@ -49,7 +54,7 @@ async def _incoming_message(event, request):
         event['text'] = event['text'][len(f'<@{slack.bot_user_id}>'):]
         event['text'] = event['text'].strip()
 
-    coro = []
+    futures = []
     for handler, configuration in slack.routers['message'].dispatch(event):
         if configuration['mention'] and not mention:
             continue
@@ -58,11 +63,14 @@ async def _incoming_message(event, request):
 
         f = asyncio.ensure_future(handler(event, request.app))
         if configuration['wait']:
-            coro.append(f)
+            futures.append(f)
         else:
             f.add_done_callback(_callback)
 
-    return await _run_coroutines(coro)
+    if futures:
+        return await _wait_and_check_result(futures)
+
+    return Response(status=200)
 
 
 async def incoming_command(request):
@@ -75,7 +83,11 @@ async def incoming_command(request):
         return Response(status=401)
 
     LOG.debug('Incoming command: %s', command)
-    return await _wait_for_handler(slack.routers['command'], command, request.app)
+    futures = list(_dispatch(slack.routers['command'], command, request.app))
+    if futures:
+        return await _wait_and_check_result(futures)
+
+    return Response(status=200)
 
 
 async def incoming_action(request):
@@ -89,7 +101,12 @@ async def incoming_action(request):
         return Response(status=401)
 
     LOG.debug('Incoming action: %s', action)
-    return await _wait_for_handler(slack.routers['action'], action, request.app)
+
+    futures = list(_dispatch(slack.routers['action'], action, request.app))
+    if futures:
+        return await _wait_and_check_result(futures)
+
+    return Response(status=200)
 
 
 def _callback(f):
@@ -99,26 +116,27 @@ def _callback(f):
         LOG.exception(e)
 
 
-async def _wait_for_handler(router, event, app):
-    coro = list()
+def _dispatch(router, event, app):
     for handler, configuration in router.dispatch(event):
         f = asyncio.ensure_future(handler(event, app))
         if configuration['wait']:
-            coro.append(f)
+            yield f
         else:
             f.add_done_callback(_callback)
 
-    return await _run_coroutines(coro)
 
-
-async def _run_coroutines(coroutines=None):
+async def _wait_and_check_result(futures):
+    dones, _ = await asyncio.wait(futures, return_when=asyncio.ALL_COMPLETED)
     try:
-        if coroutines:
-            futures, _ = await asyncio.wait(coroutines, return_when=asyncio.ALL_COMPLETED)
-            for f in futures:
-                f.result()
+        results = [done.result() for done in dones]
     except Exception as e:
         LOG.exception(e)
         return Response(status=500)
+
+    results = [result for result in results if isinstance(result, aiohttp.web.Response)]
+    if len(results) > 1:
+        LOG.warning('Multiple web.Response for handler, returning none')
+    elif results:
+        return results[0]
 
     return Response(status=200)

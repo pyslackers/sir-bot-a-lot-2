@@ -5,6 +5,7 @@ import asyncio
 import asynctest
 
 from unittest import mock
+from aiohttp.web import json_response
 
 from sirbot import SirBot
 from sirbot.plugins.slack import SlackPlugin
@@ -197,7 +198,9 @@ class TestPluginSlackEndpoints:
             raise RuntimeError()
 
         bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
-        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
+        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(
+            return_value=[(handler, {'wait': True, 'mention': False, 'admin': False}), ]
+        )
 
         client = await test_client(bot)
         r = await client.post('/slack/events', json=slack_event_only)
@@ -359,7 +362,7 @@ class TestPluginSlackEndpoints:
 
     @pytest.mark.parametrize('slack_message', ('mention', ), indirect=True)
     async def test_message_mention_strip_bot(self, bot, test_client, slack_message):
-        def handler(message, app):
+        async def handler(message, app):
             assert message['text'] == 'hello world'
 
         bot['plugins']['slack'].bot_user_id = 'U0AAA0A00'
@@ -367,3 +370,87 @@ class TestPluginSlackEndpoints:
         client = await test_client(bot)
         r = await client.post('/slack/events', json=slack_message)
         assert r.status == 200
+
+    async def test_event_handler_return_response(self, bot, test_client, slack_event):
+        async def handler(message, app):
+            return json_response(data={'ok': True}, status=200)
+
+        bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
+        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(
+            return_value=[(handler, {'wait': True, 'mention': False, 'admin': False}), ]
+        )
+
+        client = await test_client(bot)
+        r = await client.post('/slack/events', json=slack_event)
+        assert r.status == 200
+        assert (await r.json()) == {'ok': True}
+
+    async def test_action_handler_return_response(self, bot, test_client, slack_action):
+        async def handler(message, app):
+            print('AAAAA')
+            return json_response(data={'ok': True}, status=200)
+
+        bot['plugins']['slack'].routers['action'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
+        client = await test_client(bot)
+        r = await client.post('/slack/actions', data=slack_action)
+        assert r.status == 200
+        assert (await r.json()) == {'ok': True}
+
+    async def test_command_handler_return_response(self, bot, test_client, slack_command):
+        async def handler(message, app):
+            return json_response(data={'ok': True}, status=200)
+
+        bot['plugins']['slack'].routers['command'].dispatch = mock.MagicMock(return_value=[(handler, {'wait': True}), ])
+        client = await test_client(bot)
+        r = await client.post('/slack/commands', data=slack_command)
+        assert r.status == 200
+        assert (await r.json()) == {'ok': True}
+
+    async def test_handler_multiple_response(self, bot, test_client, slack_event):
+        async def handler(message, app):
+            return json_response(data={'ok': True}, status=200)
+
+        async def handler2(message, app):
+            return json_response(data={'ok': False})
+
+        bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(
+            return_value=[(handler, {'wait': True}), (handler2, {'wait': True})]
+        )
+        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(
+            return_value=[
+                (handler, {'wait': True, 'mention': False, 'admin': False}),
+                (handler2, {'wait': True, 'mention': False, 'admin': False})
+            ]
+        )
+
+        client = await test_client(bot)
+        r = await client.post('/slack/events', json=slack_event)
+        assert r.status == 200
+        assert (await r.text()) == ''
+
+    async def test_handler_no_wait(self, bot, test_client, slack_event):
+        global sentinel
+        sentinel = False
+
+        async def handler(message, app):
+            global sentinel
+            sentinel = True
+            return json_response(data={'ok': True})
+
+        bot['plugins']['slack'].routers['event'].dispatch = mock.MagicMock(
+            return_value=[(handler, {'wait': False}), ]
+        )
+        bot['plugins']['slack'].routers['message'].dispatch = mock.MagicMock(
+            return_value=[(handler, {'wait': False, 'mention': False, 'admin': False}), ]
+        )
+
+        assert not sentinel
+
+        client = await test_client(bot)
+        r = await client.post('/slack/events', json=slack_event)
+
+        assert r.status == 200
+        assert (await r.text()) == ''
+
+        await asyncio.sleep(0.5)
+        assert sentinel
