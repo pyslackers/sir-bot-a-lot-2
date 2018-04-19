@@ -4,9 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+apscheduler = "*"
 
 [dev-packages]
 tox = "*"
+sphinx = "*"
+sphinxcontrib-asyncio = "*"
+sphinxcontrib-napoleon = "*"
 
 [requires]
 python_version = "3.6"

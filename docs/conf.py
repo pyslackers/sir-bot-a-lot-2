@@ -292,4 +292,10 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/3/': None}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3/', None),
+    'slack': ('https://slack-sansio.readthedocs.io/en/stable', None),
+    'asyncpg': ('https://magicstack.github.io/asyncpg/current', None),
+    'gidgethub': ('http://gidgethub.readthedocs.io/en/latest', None),
+    'apscheduler': ('https://apscheduler.readthedocs.io/en/latest', None)
+}

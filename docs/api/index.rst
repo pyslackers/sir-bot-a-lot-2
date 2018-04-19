@@ -1,11 +1,12 @@
+
+.. _api_ref:
+
 =============
 API Reference
 =============
 
-Slack Plugin
-------------
+.. toctree::
+   :glob:
+   :maxdepth: 2
 
-.. module:: sirbot.plugins.slack
-
-.. autoclass:: sirbot.plugins.slack.SlackPlugin
-   :members:
+   *

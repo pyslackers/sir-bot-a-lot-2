@@ -12,6 +12,23 @@ LOG = logging.getLogger(__name__)
 
 
 class GithubPlugin:
+    """
+    Handle GitHub webhook.
+    The webhook must be set to ``<root_url>/github`` in your github account.
+
+    Register a new event handler with:
+
+    .. code-block:: python
+
+        GithubPlugin.router.add(handler, event_type)
+
+    **Endpoints**:
+        * ``/github``: Github webhook.
+
+    **Variables**:
+        * **router**: Instance of :class:`gidgethub.routing.Router`.
+        * **api**: Instance of :class:`gidgethub.aiohttp.GitHubAPI`.
+    """
     __name__ = 'github'
 
     def __init__(self, *, verify=None):

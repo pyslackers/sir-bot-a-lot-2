@@ -10,6 +10,17 @@ LOG = logging.getLogger(__name__)
 
 
 class PgPlugin:
+    """
+    Handle database connection and sql migration for postgresql.
+
+    Args:
+        version: Current version of the bot.
+        sql_migration_directory: Directory where migration sql files are located.
+        **kwargs: Arguments for :func:`asyncpg.pool.create_pool`.
+
+    **Variables**:
+        * **pool**: Instance of :class:`asyncpg.pool.Pool`.
+    """
     __name__ = 'pg'
 
     def __init__(self, *, sql_migration_directory=None, version=None, **kwargs):
@@ -39,6 +50,11 @@ class PgPlugin:
 
     @async_contextmanager
     async def connection(self):
+        """
+        Acquire a connection from the pool
+
+        :return: Instance of :class:`asyncpg.connection.Connection`
+        """
         async with self.pool.acquire() as pg_con:
             yield pg_con
 

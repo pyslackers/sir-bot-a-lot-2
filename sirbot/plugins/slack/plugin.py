@@ -19,12 +19,22 @@ class SlackPlugin:
 
     Handle communication from / to slack
 
+    Register a new handler
+
+    **Endpoints**:
+        * ``/slack/events``: Incoming events.
+        * ``/slack/commands``: Incoming commands.
+        * ``/slack/actions``: Incoming actions.
+
     Args:
-        token: slack authentication token (environment variable: `SLACK_TOKEN`).
-        verify: slack verification token (environment variable: `SLACK_VERIFY`).
-        bot_id: bot id (environment variable: `SLACK_BOT_ID`).
-        bot_user_id: user id of the bot (environment variable: `SLACK_BOT_USER_ID`).
-        admins: list of slack admins user id (environment variable: `SLACK_ADMINS`).
+        token: slack authentication token (env var: `SLACK_TOKEN`).
+        verify: slack verification token (env var: `SLACK_VERIFY`).
+        bot_id: bot id (env var: `SLACK_BOT_ID`).
+        bot_user_id: user id of the bot (env var: `SLACK_BOT_USER_ID`).
+        admins: list of slack admins user id (env var: `SLACK_ADMINS`).
+
+    **Variables**:
+        * **api**: Slack client. Instance of :class:`slack.io.aiohttp.SlackAPI`.
     """
 
     __name__ = 'slack'
@@ -65,8 +75,8 @@ class SlackPlugin:
         Register handler for an event
 
         Args:
-            event_type: Incoming event type
-            handler: Handler to call
+            event_type: Incoming event type.
+            handler: Handler to call.
             wait: Wait for handler execution before responding to the slack API.
         """
 
@@ -80,8 +90,8 @@ class SlackPlugin:
         Register handler for a command
 
         Args:
-            command: Incoming command
-            handler: Handler to call
+            command: Incoming command.
+            handler: Handler to call.
             wait: Wait for handler execution before responding to the slack API.
         """
         if not asyncio.iscoroutinefunction(handler):
@@ -93,11 +103,13 @@ class SlackPlugin:
         """
         Register handler for a message
 
+        kwargs are passed to :meth:`slack.events.MessageRouter.register`
+
         Args:
-            pattern: Pattern on which to match incoming message.
-            handler: Handler to call
-            mention: Only trigger handler when the bot is mentioned
-            admin: Only trigger handler if posted by an admin
+            pattern: Regex pattern matching the message text.
+            handler: Handler to call.
+            mention: Only trigger handler when the bot is mentioned.
+            admin: Only trigger handler if posted by an admin.
             wait: Wait for handler execution before responding to the slack API.
         """
         if not asyncio.iscoroutinefunction(handler):
@@ -114,9 +126,9 @@ class SlackPlugin:
         Register handler for an action
 
         Args:
-            action: `callback_id` of the incoming action
-            handler: Handler to call
-            name: Choice name of the action
+            action: `callback_id` of the incoming action.
+            handler: Handler to call.
+            name: Choice name of the action.
             wait: Wait for handler execution before responding to the slack API.
         """
         if not asyncio.iscoroutinefunction(handler):

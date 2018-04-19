@@ -32,12 +32,12 @@ Plugins
 
 Sir Bot-a-lot connect to services with plugins, some are bundled by default:
 
-    * ``sirbot.plugins.github.GithubPlugin`` For `Github <https://www.github.com>`_.
+    * :class:`sirbot.plugins.github.GithubPlugin` For `Github <https://www.github.com>`_.
     * :class:`sirbot.plugins.slack.SlackPlugin` For `Slack <https://www.slack.com>`_.
-    * ``sirbot.plugins.postgres.PgPlugin`` For `PostgreSQL <https://www.postgresql.org/>`_.
-    * ``sirbot.plugins.apscheduler.APSchedulerPlugin`` For `APscheduler <https://apscheduler.readthedocs.io/en/latest/>`_.
+    * :class:`sirbot.plugins.postgres.PgPlugin` For `PostgreSQL <https://www.postgresql.org/>`_.
+    * :class:`sirbot.plugins.apscheduler.APSchedulerPlugin` For `APscheduler <https://apscheduler.readthedocs.io/en/latest/>`_.
 
-To load a plugin call the ``bot.load`` method:
+To load a plugin initialize it and call the ``bot.load`` method:
 
 .. code:: python3
 
