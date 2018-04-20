@@ -7,6 +7,18 @@ LOG = logging.getLogger(__name__)
 
 
 class RTDPlugin:
+    """
+    Handle readthedocs webhook
+
+    Register a new handler with:
+
+    .. code-block:: python
+
+        RTDPlugin.register_handler(project_name, handler)
+
+    **Endpoints**:
+        * ``/readthedocs``: Readthedocs webhook.
+    """
     __name__ = 'readthedocs'
 
     def __init__(self):
@@ -20,11 +32,31 @@ class RTDPlugin:
         self._session = sirbot['http_session']
 
     async def build(self, project, branch='latest'):
+        """
+        Trigger a build of project branch.
+
+        The project must first be registered with :func:`register_project`
+
+        :param project: Readthedocs project name
+        :param branch: Branch to build
+        :return:
+        """
         url = self._projects[project]['build_url']
         token = self._projects[project]['jeton']
         return await self._session.post(url, json={'branch': branch, 'token': token})
 
     def register_project(self, project, build_url, jeton, handlers=None):
+        """
+        Register a project
+
+        Find project information in the ``admin > integration`` section of your
+        project readthedocs dashboard.
+
+        :param project: Readthedocs project name
+        :param build_url: Readthedocs project webhook
+        :param jeton: Integration token
+        :param handlers: Project notification handlers
+        """
         if project not in self._projects:
             self._projects[project] = {}
 
@@ -37,6 +69,15 @@ class RTDPlugin:
         self._projects[project]['jeton'] = jeton
 
     def register_handler(self, project, handler):
+        """
+        Register a new project notification handler.
+
+        To setup a notification webhook go to the ``admin > notifications`` setting
+        of your project readthedocs dashboard
+
+        :param project: Readthedocs project name.
+        :param handler: Coroutine callback.
+        """
         if project not in self._projects:
             self._projects[project] = {'handlers': [handler, ]}
         else:

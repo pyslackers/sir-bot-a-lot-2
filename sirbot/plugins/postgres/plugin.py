@@ -13,6 +13,14 @@ class PgPlugin:
     """
     Handle database connection and sql migration for postgresql.
 
+    Database migration to new version are automatically handled at startup
+    when the ``version`` and ``sql_migration_directory`` argument are
+    passed.
+
+    The ``sql_migration_directory`` should be a directory with a single
+    sql file per version and ``version`` should follow semantic
+    versioning.
+
     Args:
         version: Current version of the bot.
         sql_migration_directory: Directory where migration sql files are located.

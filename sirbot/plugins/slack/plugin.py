@@ -15,11 +15,7 @@ LOG = logging.getLogger(__name__)
 
 class SlackPlugin:
     """
-    Slack plugin.
-
-    Handle communication from / to slack
-
-    Register a new handler
+    Handle communication from and to slack
 
     **Endpoints**:
         * ``/slack/events``: Incoming events.

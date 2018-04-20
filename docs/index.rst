@@ -36,6 +36,7 @@ Sir Bot-a-lot connect to services with plugins, some are bundled by default:
     * :class:`sirbot.plugins.slack.SlackPlugin` For `Slack <https://www.slack.com>`_.
     * :class:`sirbot.plugins.postgres.PgPlugin` For `PostgreSQL <https://www.postgresql.org/>`_.
     * :class:`sirbot.plugins.apscheduler.APSchedulerPlugin` For `APscheduler <https://apscheduler.readthedocs.io/en/latest/>`_.
+    * :class:`sirbot.plugins.readthedocs.RTDPlugin` For `Readthedocs <https://readthedocs.org>`_.
 
 To load a plugin initialize it and call the ``bot.load`` method:
 
