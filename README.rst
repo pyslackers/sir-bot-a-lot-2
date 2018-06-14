@@ -35,7 +35,7 @@ Quickstart
     bot = SirBot()
 
     plugin = MyPlugin()
-    bot.load(plugin)
+    bot.load_plugin(plugin)
 
     bot.start(host='0.0.0.0', port=8000)
 
