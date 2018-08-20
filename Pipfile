@@ -4,6 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+aiohttp = "*"
+aiofiles = "*"
+asyncpg = "*"
+asyncio-contextmanager = "*"
+slack-sansio = {ref = "d91e7177437b75bd0eea647c89730f01c1f34a7f", git = "https://github.com/pyslackers/slack-sansio"}
+gidgethub = "*"
+ujson = "*"
 apscheduler = "*"
 
 [dev-packages]
@@ -11,6 +18,18 @@ tox = "*"
 sphinx = "*"
 sphinxcontrib-asyncio = "*"
 sphinxcontrib-napoleon = "*"
+"flake8" = "*"
+black = "*"
+isort = "*"
+pytest = "*"
+coverage = "*"
+pytest-coverage = "*"
+pytest-asyncio = "*"
+pytest-aiohttp = "*"
+asynctest = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

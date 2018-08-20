@@ -8,30 +8,34 @@ addons:
 
 matrix:
   fast_finish: true
+  include:
+    - python: 3.6
+    - python: 3.7
+      dist: xenial
+      sudo: true
+    - python: 3.7-dev
+      dist: xenial
+      sudo: true
+    - python: nightly
+      dist: xenial
+      sudo: true
   allow_failures:
     - python: nightly
+      dist: xenial
+      sudo: true
     - python: 3.7-dev
-    - python: 3.6-dev
-
-python:
-  - '3.6'
-  - 3.6-dev
-  - 3.7-dev
-  - nightly
+      dist: xenial
+      sudo: true
 
 install:
-  - pip install .[full]
-  - pip install coveralls
+  - pip install pipenv
+  - pipenv install --system --deploy --dev
 
 before_script:
   - psql -c 'create database sirbot;' -U postgres
 
 script:
-  - python setup.py flake8
-  - python setup.py test --addopts "--postgres"
-  - python setup.py doc
-  - python setup.py sdist
-  - python setup.py bdist_wheel
+  - pipenv run tests/test.sh postgres
 
 after_success:
   - coveralls

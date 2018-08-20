@@ -21,13 +21,14 @@ class APSchedulerPlugin:
     **Variables**
         * **scheduler**: Instance of :class:`apscheduler.schedulers.asyncio.AsyncIOScheduler`.
     """
-    __name__ = 'scheduler'
+
+    __name__ = "scheduler"
 
     def __init__(self, **kwargs):
         self.scheduler = AsyncIOScheduler(**kwargs)
 
     def load(self, sirbot):
-        LOG.info('Loading apscheduler plugin')
+        LOG.info("Loading apscheduler plugin")
         sirbot.on_startup.append(self.start)
 
     async def start(self, sirbot):

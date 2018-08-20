@@ -1,18 +1,16 @@
 import pytest
-
 from sirbot import SirBot
 
 
 @pytest.mark.asyncio
 class TestSirBot:
-
     async def test_bot(self, test_server):
         bot = SirBot()
         await test_server(bot)
 
     async def test_load_plugin(self, test_server):
         class MyPlugin:
-            __name__ = 'myplugin'
+            __name__ = "myplugin"
 
             def __init__(self):
                 pass
@@ -22,13 +20,12 @@ class TestSirBot:
 
         bot = SirBot()
         bot.load_plugin(MyPlugin())
-        assert 'myplugin' in bot.plugins
-        assert isinstance(bot['plugins']['myplugin'], MyPlugin)
+        assert "myplugin" in bot.plugins
+        assert isinstance(bot["plugins"]["myplugin"], MyPlugin)
         await test_server(bot)
 
     async def test_load_plugin_no_name(self):
         class MyPlugin:
-
             def __init__(self):
                 pass
 
@@ -41,17 +38,16 @@ class TestSirBot:
 
 
 class TestEndpoints:
-
     async def test_list_plugin_empty(self, test_client):
         bot = SirBot()
         client = await test_client(bot)
-        rep = await client.get('/sirbot/plugins')
+        rep = await client.get("/sirbot/plugins")
         data = await rep.json()
-        assert data == {'plugins': []}
+        assert data == {"plugins": []}
 
     async def test_list_plugin(self, test_client):
         class MyPlugin:
-            __name__ = 'myplugin'
+            __name__ = "myplugin"
 
             def __init__(self):
                 pass
@@ -62,6 +58,6 @@ class TestEndpoints:
         bot = SirBot()
         bot.load_plugin(MyPlugin())
         client = await test_client(bot)
-        rep = await client.get('/sirbot/plugins')
+        rep = await client.get("/sirbot/plugins")
         data = await rep.json()
-        assert data == {'plugins': ['myplugin']}
+        assert data == {"plugins": ["myplugin"]}
