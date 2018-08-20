@@ -37,6 +37,9 @@ setuptools.setup(
         "apscheduler",
     ],
     setup_requires=[],
+    extras_require={
+        "doc": ["sphinx", "sphinxcontrib-asyncio", "sphinxcontrib-napoleon"]
+    },
     # See: http://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
