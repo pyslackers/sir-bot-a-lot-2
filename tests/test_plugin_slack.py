@@ -37,7 +37,7 @@ def find_bot_id_query():
                 "deleted": False,
                 "color": "9f69e7",
                 "real_name": "episod",
-                "tz": "America\/Los_Angeles",
+                "tz": "America/Los_Angeles",
                 "tz_label": "Pacific Daylight Time",
                 "tz_offset": -25200,
                 "profile": {
@@ -49,12 +49,12 @@ def find_bot_id_query():
                     "real_name_normalized": "Egon Spengler",
                     "display_name_normalized": "spengler",
                     "email": "spengler@ghostbusters.example.com",
-                    "image_24": "https:\/\/...\/avatar\/e3b51ca72dee4ef87916ae2b9240df50.jpg",
-                    "image_32": "https:\/\/...\/avatar\/e3b51ca72dee4ef87916ae2b9240df50.jpg",
-                    "image_48": "https:\/\/...\/avatar\/e3b51ca72dee4ef87916ae2b9240df50.jpg",
-                    "image_72": "https:\/\/...\/avatar\/e3b51ca72dee4ef87916ae2b9240df50.jpg",
-                    "image_192": "https:\/\/...\/avatar\/e3b51ca72dee4ef87916ae2b9240df50.jpg",
-                    "image_512": "https:\/\/...\/avatar\/e3b51ca72dee4ef87916ae2b9240df50.jpg",
+                    "image_24": "https://.../avatar/e3b51ca72dee4ef87916ae2b9240df50.jpg",
+                    "image_32": "https://.../avatar/e3b51ca72dee4ef87916ae2b9240df50.jpg",
+                    "image_48": "https://.../avatar/e3b51ca72dee4ef87916ae2b9240df50.jpg",
+                    "image_72": "https://.../avatar/e3b51ca72dee4ef87916ae2b9240df50.jpg",
+                    "image_192": "https://.../avatar/e3b51ca72dee4ef87916ae2b9240df50.jpg",
+                    "image_512": "https://.../avatar/e3b51ca72dee4ef87916ae2b9240df50.jpg",
                     "team": "T012AB3C4",
                     "bot_id": "B00000000",
                 },
@@ -241,7 +241,7 @@ class TestPluginSlackEndpoints:
         r = await client.post("/slack/actions", data=slack_action)
         assert r.status == 401
 
-    async def test_incoming_event_error(self, bot, test_client, slack_event_only):
+    async def test_incoming_event_error(self, bot, test_client, slack_event):
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
@@ -253,7 +253,7 @@ class TestPluginSlackEndpoints:
         )
 
         client = await test_client(bot)
-        r = await client.post("/slack/events", json=slack_event_only)
+        r = await client.post("/slack/events", json=slack_event)
         assert r.status == 500
 
     async def test_incoming_message_error(self, bot, test_client, slack_message):

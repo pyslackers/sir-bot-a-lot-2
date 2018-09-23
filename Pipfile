@@ -8,7 +8,7 @@ aiohttp = "*"
 aiofiles = "*"
 asyncpg = "*"
 asyncio-contextmanager = "*"
-slack-sansio = {ref = "d91e7177437b75bd0eea647c89730f01c1f34a7f", git = "https://github.com/pyslackers/slack-sansio"}
+slack-sansio = {git = "https://github.com/pyslackers/slack-sansio.git", ref = "6eaa6d6d5bd53dd762516f0446210a22351558f6"}
 gidgethub = "*"
 ujson = "*"
 apscheduler = "*"
