@@ -68,7 +68,7 @@ def _sign_body(
         "v0="
         + hmac.new(
             signing_secret.encode("utf-8"),
-            f"""v0:{timestamp}:{body}""".encode("utf-8"),
+            f"""v0:{timestamp}:{body.decode("utf-8")}""".encode("utf-8"),
             digestmod=hashlib.sha256,
         ).hexdigest()
     )

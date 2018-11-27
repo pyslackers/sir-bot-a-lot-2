@@ -20,8 +20,9 @@ async def incoming_event(request):
     if payload.get("type") == "url_verification":
         if slack.signing_secret:
             try:
+                raw_payload = await request.read()
                 validate_request_signature(
-                    await request.read(), request.headers, slack.signing_secret
+                    raw_payload.decode("utf-8"), request.headers, slack.signing_secret
                 )
                 return Response(body=payload["challenge"])
             except (InvalidSlackSignature, InvalidTimestamp):
@@ -159,8 +160,9 @@ async def _wait_and_check_result(futures):
 
 async def _validate_request(request, slack):
     if slack.signing_secret:
+        raw_payload = await request.read()
         validate_request_signature(
-            await request.read(), request.headers, slack.signing_secret
+            raw_payload.decode("utf-8"), request.headers, slack.signing_secret
         )
         return None
     else:
