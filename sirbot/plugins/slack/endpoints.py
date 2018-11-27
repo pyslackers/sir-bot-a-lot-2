@@ -4,9 +4,10 @@ import logging
 import aiohttp.web
 from aiohttp.web import Response
 from slack.events import Event
+from slack.sansio import validate_request_signature
 from slack.actions import Action
 from slack.commands import Command
-from slack.exceptions import FailedVerification
+from slack.exceptions import InvalidTimestamp, FailedVerification, InvalidSlackSignature
 
 LOG = logging.getLogger(__name__)
 
@@ -16,15 +17,24 @@ async def incoming_event(request):
     payload = await request.json()
     LOG.log(5, "Incoming event payload: %s", payload)
 
-    if "challenge" in payload:
-        if payload["token"] == slack.verify:
+    if payload.get("type") == "url_verification":
+        if slack.signing_secret:
+            try:
+                validate_request_signature(
+                    await request.read(), request.headers, slack.signing_secret
+                )
+                return Response(body=payload["challenge"])
+            except (InvalidSlackSignature, InvalidTimestamp):
+                return Response(status=500)
+        elif payload["token"] == slack.verify:
             return Response(body=payload["challenge"])
         else:
             return Response(status=500)
 
     try:
-        event = Event.from_http(payload, verification_token=slack.verify)
-    except FailedVerification:
+        verification_token = await _validate_request(request, slack)
+        event = Event.from_http(payload, verification_token=verification_token)
+    except (FailedVerification, InvalidSlackSignature, InvalidTimestamp):
         return Response(status=401)
 
     if event["type"] == "message":
@@ -81,8 +91,9 @@ async def incoming_command(request):
     payload = await request.post()
 
     try:
-        command = Command(payload, verification_token=slack.verify)
-    except FailedVerification:
+        verification_token = await _validate_request(request, slack)
+        command = Command(payload, verification_token=verification_token)
+    except (FailedVerification, InvalidSlackSignature, InvalidTimestamp):
         return Response(status=401)
 
     LOG.debug("Incoming command: %s", command)
@@ -99,8 +110,9 @@ async def incoming_action(request):
     LOG.log(5, "Incoming action payload: %s", payload)
 
     try:
-        action = Action.from_http(payload, verification_token=slack.verify)
-    except FailedVerification:
+        verification_token = await _validate_request(request, slack)
+        action = Action.from_http(payload, verification_token=verification_token)
+    except (FailedVerification, InvalidSlackSignature, InvalidTimestamp):
         return Response(status=401)
 
     LOG.debug("Incoming action: %s", action)
@@ -143,3 +155,13 @@ async def _wait_and_check_result(futures):
         return results[0]
 
     return Response(status=200)
+
+
+async def _validate_request(request, slack):
+    if slack.signing_secret:
+        validate_request_signature(
+            await request.read(), request.headers, slack.signing_secret
+        )
+        return None
+    else:
+        return slack.verify

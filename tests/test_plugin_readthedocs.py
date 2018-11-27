@@ -12,8 +12,8 @@ async def bot():
 
 
 class TestPluginReadTheDocs:
-    async def test_start(self, bot, test_server):
-        await test_server(bot)
+    async def test_start(self, bot, aiohttp_server):
+        await aiohttp_server(bot)
         assert isinstance(bot["plugins"]["readthedocs"], RTDPlugin)
 
     async def test_register_project(self, bot):
@@ -134,7 +134,7 @@ class TestPluginReadTheDocs:
         assert h[1] is handler_bis
         assert "test" in bot["plugins"]["readthedocs"]._projects
 
-    async def test_incoming(self, bot, test_client):
+    async def test_incoming(self, bot, aiohttp_client):
         async def handler(payload, app):
             assert payload == {
                 "build": {
@@ -147,7 +147,7 @@ class TestPluginReadTheDocs:
             }
             assert app is bot
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         bot["plugins"]["readthedocs"].register_handler("sir-bot-a-lot", handler=handler)
 
         r = await client.post(
@@ -164,11 +164,11 @@ class TestPluginReadTheDocs:
         )
         assert r.status == 200
 
-    async def test_incoming_handler_error(self, bot, test_client):
+    async def test_incoming_handler_error(self, bot, aiohttp_client):
         async def handler(payload, app):
             raise RuntimeError()
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         bot["plugins"]["readthedocs"].register_handler("sir-bot-a-lot", handler=handler)
 
         r = await client.post(
@@ -185,8 +185,8 @@ class TestPluginReadTheDocs:
         )
         assert r.status == 500
 
-    async def test_incoming_no_project(self, bot, test_client):
-        client = await test_client(bot)
+    async def test_incoming_no_project(self, bot, aiohttp_client):
+        client = await aiohttp_client(bot)
         r = await client.post(
             "/readthedocs",
             json={
@@ -201,8 +201,8 @@ class TestPluginReadTheDocs:
         )
         assert r.status == 400
 
-    async def test_incoming_project_no_handler(self, bot, test_client):
-        client = await test_client(bot)
+    async def test_incoming_project_no_handler(self, bot, aiohttp_client):
+        client = await aiohttp_client(bot)
         bot["plugins"]["readthedocs"].register_project(
             "sir-bot-a-lot", build_url="https://example.com", jeton="aaaaaa"
         )
@@ -220,8 +220,8 @@ class TestPluginReadTheDocs:
         )
         assert r.status == 200
 
-    async def test_incoming_bad_json(self, bot, test_client):
-        client = await test_client(bot)
+    async def test_incoming_bad_json(self, bot, aiohttp_client):
+        client = await aiohttp_client(bot)
         r = await client.post("/readthedocs", json={"a": "b"})
         assert r.status == 400
 

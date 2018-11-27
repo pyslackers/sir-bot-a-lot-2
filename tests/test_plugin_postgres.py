@@ -25,17 +25,17 @@ class TestPluginPostgres:
             await pg_con.execute("""DROP SCHEMA IF EXISTS sirbot_test CASCADE""")
             await pg_con.execute("""DROP TABLE IF EXISTS metadata""")
 
-    async def test_start(self, bot, test_server):
+    async def test_start(self, bot, aiohttp_server):
         try:
-            await test_server(bot)
+            await aiohttp_server(bot)
             assert isinstance(bot["plugins"]["pg"], PgPlugin)
         finally:
             await self._teardown(bot)
 
-    async def test_no_migration(self, bot, test_server):
+    async def test_no_migration(self, bot, aiohttp_server):
         try:
             bot["plugins"]["pg"].sql_migration_directory = None
-            await test_server(bot)
+            await aiohttp_server(bot)
 
             with pytest.raises(asyncpg.exceptions.UndefinedTableError):
                 async with bot["plugins"]["pg"].connection() as pg_con:
@@ -43,10 +43,10 @@ class TestPluginPostgres:
         finally:
             await self._teardown(bot)
 
-    async def test_initial_migration(self, bot, test_server):
+    async def test_initial_migration(self, bot, aiohttp_server):
         try:
             bot["plugins"]["pg"].version = "0.0.1"
-            await test_server(bot)
+            await aiohttp_server(bot)
             async with bot["plugins"]["pg"].connection() as pg_con:
                 version = await pg_con.fetchval("""SELECT db_version FROM metadata""")
                 count = await pg_con.fetchval(
@@ -58,9 +58,9 @@ class TestPluginPostgres:
         finally:
             await self._teardown(bot)
 
-    async def test_migration_to_0_0_2(self, bot, test_server):
+    async def test_migration_to_0_0_2(self, bot, aiohttp_server):
         try:
-            await test_server(bot)
+            await aiohttp_server(bot)
 
             async with bot["plugins"]["pg"].connection() as pg_con:
                 version = await pg_con.fetchval("""SELECT db_version FROM metadata""")
@@ -82,10 +82,10 @@ class TestPluginPostgres:
         finally:
             await self._teardown(bot)
 
-    async def test_no_migration_needed(self, bot, test_server):
+    async def test_no_migration_needed(self, bot, aiohttp_server):
         try:
             bot["plugins"]["pg"].version = "0.1.9"
-            await test_server(bot)
+            await aiohttp_server(bot)
 
             async with bot["plugins"]["pg"].connection() as pg_con:
                 count_start = await pg_con.fetchval(
@@ -104,12 +104,12 @@ class TestPluginPostgres:
         finally:
             await self._teardown(bot)
 
-    async def test_failed_migration(self, bot, test_server):
+    async def test_failed_migration(self, bot, aiohttp_server):
         try:
             bot["plugins"]["pg"].version = "0.2.0"
 
             with pytest.raises(asyncpg.exceptions.UndefinedColumnError):
-                await test_server(bot)
+                await aiohttp_server(bot)
 
             with pytest.raises(asyncpg.exceptions.UndefinedTableError):
                 async with bot["plugins"]["pg"].connection() as pg_con:

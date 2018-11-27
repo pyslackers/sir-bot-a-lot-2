@@ -24,28 +24,28 @@ async def event(request):
 
 
 class TestPluginGithub:
-    async def test_start(self, bot, test_server):
-        await test_server(bot)
+    async def test_start(self, bot, aiohttp_server):
+        await aiohttp_server(bot)
         assert isinstance(bot["plugins"]["github"], GithubPlugin)
 
-    async def test_incoming_event(self, bot, test_client, event):
-        client = await test_client(bot)
+    async def test_incoming_event(self, bot, aiohttp_client, event):
+        client = await aiohttp_client(bot)
         r = await client.post("/github", json=event[0], headers=event[1])
         assert r.status == 200
 
-    async def test_incoming_event_401(self, bot, test_client, event):
+    async def test_incoming_event_401(self, bot, aiohttp_client, event):
         bot["plugins"]["github"].verify = "wrongsupersecrettoken"
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/github", json=event[0], headers=event[1])
         assert r.status == 401
 
-    async def test_incoming_event_handler_error(self, bot, test_client, event):
+    async def test_incoming_event_handler_error(self, bot, aiohttp_client, event):
         async def handler(event, app):
             raise RuntimeError()
 
         bot["plugins"]["github"].router.add(
             handler, event[1]["X-GitHub-Event"], action=event[0]["action"]
         )
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/github", json=event[0], headers=event[1])
         assert r.status == 500

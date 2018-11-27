@@ -11,6 +11,6 @@ async def bot():
 
 
 class TestPluginAPscheduler:
-    async def test_start(self, bot, test_server):
-        await test_server(bot)
+    async def test_start(self, bot, aiohttp_server):
+        await aiohttp_server(bot)
         assert isinstance(bot["plugins"]["scheduler"], APSchedulerPlugin)

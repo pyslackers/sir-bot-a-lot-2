@@ -24,10 +24,12 @@ class SlackPlugin:
 
     Args:
         token: slack authentication token (env var: `SLACK_TOKEN`).
-        verify: slack verification token (env var: `SLACK_VERIFY`).
         bot_id: bot id (env var: `SLACK_BOT_ID`).
         bot_user_id: user id of the bot (env var: `SLACK_BOT_USER_ID`).
         admins: list of slack admins user id (env var: `SLACK_ADMINS`).
+        verify: slack verification token (env var: `SLACK_VERIFY`).
+        signing_secret: slack signing secret key (env var: `SLACK_SIGNING_SECRET`).
+                        (disables verification token if provided).
 
     **Variables**:
         * **api**: Slack client. Instance of :class:`slack.io.aiohttp.SlackAPI`.
@@ -36,12 +38,24 @@ class SlackPlugin:
     __name__ = "slack"
 
     def __init__(
-        self, *, token=None, verify=None, bot_id=None, bot_user_id=None, admins=None
+        self,
+        *,
+        token=None,
+        bot_id=None,
+        bot_user_id=None,
+        admins=None,
+        verify=None,
+        signing_secret=None
     ):
         self.api = None
         self.token = token or os.environ["SLACK_TOKEN"]
         self.admins = admins or os.environ.get("SLACK_ADMINS", [])
-        self.verify = verify or os.environ["SLACK_VERIFY"]
+        if signing_secret or "SLACK_SIGNING_SECRET" in os.environ:
+            self.signing_secret = signing_secret or os.environ["SLACK_SIGNING_SECRET"]
+            self.verify = None
+        else:
+            self.verify = verify or os.environ["SLACK_VERIFY"]
+            self.signing_secret = None
         self.bot_id = bot_id or os.environ.get("SLACK_BOT_ID")
         self.bot_user_id = bot_user_id or os.environ.get("SLACK_BOT_USER_ID")
         self.handlers_option = {}

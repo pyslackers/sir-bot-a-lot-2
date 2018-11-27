@@ -1,6 +1,13 @@
 import re
+import hmac
+import json
+import time
 import asyncio
+import hashlib
+import urllib.parse
+from typing import Dict, Tuple, Union, Optional
 from unittest import mock
+from collections import MutableMapping
 
 import slack
 import pytest
@@ -23,6 +30,49 @@ async def bot():
         )
     )
     return b
+
+
+@pytest.fixture
+async def bot_signing():
+    b = SirBot()
+    b.load_plugin(
+        SlackPlugin(
+            token="foo",
+            signing_secret="sharedsigningkey",
+            bot_user_id="baz",
+            bot_id="boo",
+            admins=["aaa", "bbb"],
+        )
+    )
+    return b
+
+
+def _sign_body(
+    json_data: Optional[Dict] = None,
+    post_data: Optional[Dict] = None,
+    signing_secret: str = "sharedsigningkey",
+    timestamp: Optional[int] = None,
+) -> Tuple[Dict[str, str], bytes]:
+    if json_data:
+        headers = {"content-type": "application/json"}
+        body = json.dumps(json_data).encode("utf-8")
+    elif post_data:
+        headers = {"content-type": "application/x-www-form-urlencoded"}
+        body = urllib.parse.urlencode(post_data).encode("utf-8")
+    else:
+        raise ValueError("Unknown type of data to sign")
+    if timestamp is None:
+        timestamp = int(time.time())
+    headers["X-Slack-Request-Timestamp"] = str(timestamp)
+    headers["X-Slack-Signature"] = (
+        "v0="
+        + hmac.new(
+            signing_secret.encode("utf-8"),
+            f"""v0:{timestamp}:{body}""".encode("utf-8"),
+            digestmod=hashlib.sha256,
+        ).hexdigest()
+    )
+    return headers, body
 
 
 @pytest.fixture
@@ -64,7 +114,7 @@ def find_bot_id_query():
                 "is_restricted": False,
                 "is_ultra_restricted": False,
                 "is_bot": True,
-                "updated": 1502138686,
+                "updated": 1_502_138_686,
                 "is_app_user": False,
                 "has_2fa": False,
             },
@@ -74,8 +124,8 @@ def find_bot_id_query():
 
 
 class TestPluginSlack:
-    async def test_start(self, bot, test_server):
-        await test_server(bot)
+    async def test_start(self, bot, aiohttp_server):
+        await aiohttp_server(bot)
         assert isinstance(bot["plugins"]["slack"], SlackPlugin)
 
     async def test_start_no_bot_user_id(self, caplog):
@@ -193,55 +243,81 @@ class TestPluginSlack:
             bot["plugins"]["slack"].routers["action"]._routes["hello"]["*"][1][0]
         )
 
-    async def test_find_bot_id(self, bot, test_server, find_bot_id_query):
-        await test_server(bot)
+    async def test_find_bot_id(self, bot, aiohttp_server, find_bot_id_query):
+        await aiohttp_server(bot)
         bot["plugins"]["slack"].api.query = find_bot_id_query
         await bot["plugins"]["slack"].find_bot_id(bot)
         assert bot["plugins"]["slack"].bot_id == "B00000000"
 
-    async def test_start_find_bot_id(self, test_server, find_bot_id_query):
+    async def test_start_find_bot_id(self, aiohttp_server, find_bot_id_query):
         bot = SirBot()
         bot.load_plugin(SlackPlugin(token="foo", verify="bar", bot_user_id="baz"))
         bot["plugins"]["slack"].api.query = find_bot_id_query
-        await test_server(bot)
+        await aiohttp_server(bot)
         assert bot["plugins"]["slack"].bot_id == "B00000000"
 
 
 class TestPluginSlackEndpoints:
-    async def test_incoming_event(self, bot, test_client, slack_event):
-        client = await test_client(bot)
+    async def test_incoming_event(self, bot, aiohttp_client, slack_event):
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_event)
         assert r.status == 200
 
-    async def test_incoming_command(self, bot, test_client, slack_command):
-        client = await test_client(bot)
+    async def test_incoming_event_signed(
+        self, bot_signing, aiohttp_client, slack_event
+    ):
+        client = await aiohttp_client(bot_signing)
+        headers, body = _sign_body(json_data=slack_event)
+        r = await client.post("/slack/events", headers=headers, data=body)
+        assert r.status == 200
+
+    async def test_incoming_command(self, bot, aiohttp_client, slack_command):
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/commands", data=slack_command)
         assert r.status == 200
 
-    async def test_incoming_action(self, bot, test_client, slack_action):
-        client = await test_client(bot)
+    async def test_incoming_command_signed(
+        self, bot_signing, aiohttp_client, slack_command
+    ):
+        client = await aiohttp_client(bot_signing)
+        headers, body = _sign_body(post_data=slack_command)
+        r = await client.post("/slack/commands", headers=headers, data=body)
+        assert r.status == 200
+
+    async def test_incoming_action(self, bot, aiohttp_client, slack_action):
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/actions", data=slack_action)
         assert r.status == 200
 
-    async def test_incoming_event_wrong_token(self, bot, test_client, slack_event):
+    async def test_incoming_action_signed(
+        self, bot_signing, aiohttp_client, slack_action
+    ):
+        client = await aiohttp_client(bot_signing)
+        headers, body = _sign_body(post_data=slack_action)
+        r = await client.post("/slack/actions", headers=headers, data=body)
+        assert r.status == 200
+
+    async def test_incoming_event_wrong_token(self, bot, aiohttp_client, slack_event):
         bot["plugins"]["slack"].verify = "bar"
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_event)
         assert r.status == 401
 
-    async def test_incoming_command_wrong_token(self, bot, test_client, slack_command):
+    async def test_incoming_command_wrong_token(
+        self, bot, aiohttp_client, slack_command
+    ):
         bot["plugins"]["slack"].verify = "bar"
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/commands", data=slack_command)
         assert r.status == 401
 
-    async def test_incoming_action_wrong_token(self, bot, test_client, slack_action):
+    async def test_incoming_action_wrong_token(self, bot, aiohttp_client, slack_action):
         bot["plugins"]["slack"].verify = "bar"
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/actions", data=slack_action)
         assert r.status == 401
 
-    async def test_incoming_event_error(self, bot, test_client, slack_event):
+    async def test_incoming_event_error(self, bot, aiohttp_client, slack_event):
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
@@ -252,11 +328,11 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True, "mention": False, "admin": False})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_event)
         assert r.status == 500
 
-    async def test_incoming_message_error(self, bot, test_client, slack_message):
+    async def test_incoming_message_error(self, bot, aiohttp_client, slack_message):
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
@@ -264,11 +340,11 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True, "mention": False, "admin": False})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 500
 
-    async def test_incoming_command_error(self, bot, test_client, slack_command):
+    async def test_incoming_command_error(self, bot, aiohttp_client, slack_command):
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
@@ -276,11 +352,11 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/commands", data=slack_command)
         assert r.status == 500
 
-    async def test_incoming_action_error(self, bot, test_client, slack_action):
+    async def test_incoming_action_error(self, bot, aiohttp_client, slack_action):
         async def handler(*args, **kwargs):
             raise RuntimeError()
 
@@ -288,11 +364,11 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/actions", data=slack_action)
         assert r.status == 500
 
-    async def test_incoming_event_handler_arg(self, bot, test_client, slack_event):
+    async def test_incoming_event_handler_arg(self, bot, aiohttp_client, slack_event):
         async def handler(event, app):
             assert app is bot
             assert isinstance(event, slack.events.Event)
@@ -301,11 +377,13 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_event)
         assert r.status == 200
 
-    async def test_incoming_message_handler_arg(self, bot, test_client, slack_message):
+    async def test_incoming_message_handler_arg(
+        self, bot, aiohttp_client, slack_message
+    ):
         async def handler(event, app):
             assert app is bot
             assert isinstance(event, slack.events.Message)
@@ -314,11 +392,13 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True, "mention": False, "admin": False})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
 
-    async def test_incoming_command_handler_arg(self, bot, test_client, slack_command):
+    async def test_incoming_command_handler_arg(
+        self, bot, aiohttp_client, slack_command
+    ):
         async def handler(command, app):
             assert app is bot
             assert isinstance(command, slack.commands.Command)
@@ -327,11 +407,11 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/commands", data=slack_command)
         assert r.status == 200
 
-    async def test_incoming_action_handler_arg(self, bot, test_client, slack_action):
+    async def test_incoming_action_handler_arg(self, bot, aiohttp_client, slack_action):
         async def handler(action, app):
             assert app is bot
             assert isinstance(action, slack.actions.Action)
@@ -340,106 +420,146 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/actions", data=slack_action)
         assert r.status == 200
 
-    async def test_event_challenge(self, bot, test_client):
+    async def test_event_challenge(self, bot, aiohttp_client):
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post(
             "/slack/events",
-            json={"token": "supersecuretoken", "challenge": "abcdefghij"},
+            json={
+                "token": "supersecuretoken",
+                "challenge": "abcdefghij",
+                "type": "url_verification",
+            },
         )
         data = await r.text()
         assert r.status == 200
         assert data == "abcdefghij"
+        assert r.status == 200
 
-    async def test_event_challenge_wrong_token(self, bot, test_client):
+    async def test_event_challenge_signed(self, bot_signing, aiohttp_client):
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot_signing)
+        headers, body = _sign_body(
+            json_data={
+                "token": "na",
+                "challenge": "abcdefghij",
+                "type": "url_verification",
+            }
+        )
+        r = await client.post("/slack/events", data=body, headers=headers)
+        data = await r.text()
+        assert r.status == 200
+        assert data == "abcdefghij"
+
+    async def test_event_challenge_wrong_token(self, bot, aiohttp_client):
+
+        client = await aiohttp_client(bot)
         r = await client.post(
             "/slack/events",
-            json={"token": "wrongsupersecuretoken", "challenge": "abcdefghij"},
+            json={
+                "token": "wrongsupersecuretoken",
+                "challenge": "abcdefghij",
+                "type": "url_verification",
+            },
         )
         assert r.status == 500
 
+    async def test_event_challenge_signed_wrong(self, bot_signing, aiohttp_client):
+
+        client = await aiohttp_client(bot_signing)
+        headers, body = _sign_body(
+            json_data={
+                "token": "na",
+                "challenge": "abcdefghij",
+                "type": "url_verification",
+            },
+            signing_secret="notsharedsigningkey",
+        )
+        r = await client.post("/slack/events", data=body, headers=headers)
+        assert r.status == 500
+
     @pytest.mark.parametrize("slack_message", ("bot",), indirect=True)
-    async def test_message_from_bot(self, bot, test_client, slack_message):
+    async def test_message_from_bot(self, bot, aiohttp_client, slack_message):
         bot["plugins"]["slack"].bot_id = "B0AAA0A00"
         bot["plugins"]["slack"].routers["message"].dispatch = mock.MagicMock()
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
         assert bot["plugins"]["slack"].routers["message"].dispatch.call_count == 0
 
     @pytest.mark.parametrize("slack_message", ("bot",), indirect=True)
-    async def test_message_from_other_bot(self, bot, test_client, slack_message):
+    async def test_message_from_other_bot(self, bot, aiohttp_client, slack_message):
         bot["plugins"]["slack"].bot_id = "B0AAA0A01"
         bot["plugins"]["slack"].routers["message"].dispatch = mock.MagicMock()
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
         assert bot["plugins"]["slack"].routers["message"].dispatch.call_count == 1
 
     @pytest.mark.parametrize("slack_message", ("simple",), indirect=True)
-    async def test_admin_message_ok(self, bot, test_client, slack_message):
+    async def test_admin_message_ok(self, bot, aiohttp_client, slack_message):
         handler = asynctest.CoroutineMock()
         bot["plugins"]["slack"].admins = ["U000AA000"]
         bot["plugins"]["slack"].on_message("hello", handler, admin=True)
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
         assert handler.call_count == 1
 
     @pytest.mark.parametrize("slack_message", ("simple",), indirect=True)
-    async def test_admin_message_skip(self, bot, test_client, slack_message):
+    async def test_admin_message_skip(self, bot, aiohttp_client, slack_message):
         handler = asynctest.CoroutineMock()
         bot["plugins"]["slack"].admins = ["U000AA001"]
         bot["plugins"]["slack"].on_message("hello", handler, admin=True)
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
         assert handler.call_count == 0
 
     @pytest.mark.parametrize("slack_message", ("mention",), indirect=True)
-    async def test_message_mention_ok(self, bot, test_client, slack_message):
+    async def test_message_mention_ok(self, bot, aiohttp_client, slack_message):
         handler = asynctest.CoroutineMock()
         bot["plugins"]["slack"].bot_user_id = "U0AAA0A00"
         bot["plugins"]["slack"].on_message("hello world", handler, mention=True)
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
         assert handler.call_count == 1
 
     @pytest.mark.parametrize("slack_message", ("mention",), indirect=True)
-    async def test_message_mention_skip(self, bot, test_client, slack_message):
+    async def test_message_mention_skip(self, bot, aiohttp_client, slack_message):
         handler = asynctest.CoroutineMock()
         bot["plugins"]["slack"].bot_user_id = "U0AAA0A01"
         bot["plugins"]["slack"].on_message("hello world", handler, mention=True)
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
         assert handler.call_count == 0
 
     @pytest.mark.parametrize("slack_message", ("mention",), indirect=True)
-    async def test_message_mention_strip_bot(self, bot, test_client, slack_message):
+    async def test_message_mention_strip_bot(self, bot, aiohttp_client, slack_message):
         async def handler(message, app):
             assert message["text"] == "hello world"
 
         bot["plugins"]["slack"].bot_user_id = "U0AAA0A00"
         bot["plugins"]["slack"].on_message("hello world", handler, mention=True)
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_message)
         assert r.status == 200
 
-    async def test_event_handler_return_response(self, bot, test_client, slack_event):
+    async def test_event_handler_return_response(
+        self, bot, aiohttp_client, slack_event
+    ):
         async def handler(message, app):
             return json_response(data={"ok": True}, status=200)
 
@@ -450,12 +570,14 @@ class TestPluginSlackEndpoints:
             return_value=[(handler, {"wait": True, "mention": False, "admin": False})]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_event)
         assert r.status == 200
         assert (await r.json()) == {"ok": True}
 
-    async def test_action_handler_return_response(self, bot, test_client, slack_action):
+    async def test_action_handler_return_response(
+        self, bot, aiohttp_client, slack_action
+    ):
         async def handler(message, app):
             print("AAAAA")
             return json_response(data={"ok": True}, status=200)
@@ -463,13 +585,13 @@ class TestPluginSlackEndpoints:
         bot["plugins"]["slack"].routers["action"].dispatch = mock.MagicMock(
             return_value=[(handler, {"wait": True})]
         )
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/actions", data=slack_action)
         assert r.status == 200
         assert (await r.json()) == {"ok": True}
 
     async def test_command_handler_return_response(
-        self, bot, test_client, slack_command
+        self, bot, aiohttp_client, slack_command
     ):
         async def handler(message, app):
             return json_response(data={"ok": True}, status=200)
@@ -477,12 +599,12 @@ class TestPluginSlackEndpoints:
         bot["plugins"]["slack"].routers["command"].dispatch = mock.MagicMock(
             return_value=[(handler, {"wait": True})]
         )
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/commands", data=slack_command)
         assert r.status == 200
         assert (await r.json()) == {"ok": True}
 
-    async def test_handler_multiple_response(self, bot, test_client, slack_event):
+    async def test_handler_multiple_response(self, bot, aiohttp_client, slack_event):
         async def handler(message, app):
             return json_response(data={"ok": True}, status=200)
 
@@ -499,12 +621,12 @@ class TestPluginSlackEndpoints:
             ]
         )
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_event)
         assert r.status == 200
         assert (await r.text()) == ""
 
-    async def test_handler_no_wait(self, bot, test_client, slack_event):
+    async def test_handler_no_wait(self, bot, aiohttp_client, slack_event):
         global sentinel
         sentinel = False
 
@@ -522,7 +644,7 @@ class TestPluginSlackEndpoints:
 
         assert not sentinel
 
-        client = await test_client(bot)
+        client = await aiohttp_client(bot)
         r = await client.post("/slack/events", json=slack_event)
 
         assert r.status == 200
