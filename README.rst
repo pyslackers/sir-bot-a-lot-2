@@ -53,9 +53,12 @@ Sir Bot-a-lot provide some plugins to connect to various services:
 Changelog
 ---------
 
-dev
-```
+0.1.0
+`````
 
+* Migrate to poetry
+* Support for slack signing secret
+* 
 * ``sirbot.plugins.slack.SlackPlugin`` allow returning ``aiohttp.web.Response`` in handlers.
 
 0.0.5

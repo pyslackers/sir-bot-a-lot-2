@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sirbot"
-version = "0.0.5"
+version = "0.1.0"
 description = "The good Sir Bot-a-lot. An asynchronous python bot framework."
 authors = ["Ovv <contact@ovv.wtf>"]
 license = "MIT"
