@@ -27,27 +27,27 @@ matrix:
       dist: xenial
       sudo: true
 
+env:
+  global:
+    - secure: "pPCYxAdBBMpl0hRWPtX5q75eBKbxU9Vccrms72D3pB4yrL6cKOrR3+/3BYU+81J18dZHXxaetSJ5DmbarYrOi5tnuigr7E6Z4zEA7RBBNyUfIe+g2sNK8tDBQjRrPpgHlKAFpySPOdU2E4Z0fi58EkTf7UfwVHyx3ouUqiwfNqn8UwCsWwGjeIfmyHi1Sj7DzTHNYLr9HfceGF/EkW+UDy2ZqDmzyuyCCwtzeKr7qDPpUM2G8HNf25F4pdNiv8S1T13cHFfXD/cCvGFFW2fs6a7LN0yfOUi7jpp3eobDW1NWbEfA2A3PyQS+jtIdxgS0mwnOrVeBFxuI5dWD1+RLdaESOQunJKErWDl2N7FAEdZCegV3udseuGMomUjwSNonlI1X8NYG9Wcz3Ks0ZS3KdaQuDATwDWPMWUi2uZIdbhDuzBKNIK3kAY2ck1Tk4+W/hgDtiCusGiGT2ip77R07kaH8ohr1v5T4FL5Bhv7IHDganWg3SXBgeGrQY9XGJevkFePgfxgQLKI1/oxb38xhzXduxGHHb/vJrVCSUvVmgLZoZDCvMt3i6T6zt3aEwgEYG6xdlkH0JRF45k4XM3FzPMJEl8RQydvgUAfroB7OkD8jhCc20lBAhDJpAfGqJuDn+9OdyYzsrLoybwahmqL4UKnDeDq+t+veppnDrc6ghPw="
+
 install:
-  - pip install pipenv
-  - pipenv install --system --deploy --dev
+  - pip install poetry tox tox-travis coveralls
 
 before_script:
   - psql -c 'create database sirbot;' -U postgres
 
 script:
-  - pipenv run tests/test.sh postgres
+  - tox
 
 after_success:
   - coveralls
 
 deploy:
-  - provider: pypi
-    distributions: sdist bdist_wheel
-    user: Ovv
-    password:
-      secure: abuXsWRiaawFvA8xleYW25gGMeYfG/6ZnbbfB/A0E/ZETUk4OoxBLrSQszdX78cxRe3p1MOIwDBABJRE2QozCaC5GK3FsNHdHoGmUYDT3VBsaPjj/G796r9W/EaO4Iwg/SqVi2vIFfpxx5Xgn+V1jWcHweBM/d+sNi1MdeshKwLHBQn1gEeUT2HMXSdyHsPDmXU7j2hvgo6s8mhvJ2s/bxSffgr5ay5tzOMMKjMaQGVVv5HMiiWMYV/h6R9UUt9cpBc6zCau6VzZ5v1lMYcuZaAdEQYo23A1wThpeDHlbpxFdChDsJN6bbr6Vr4bpCxp3yTg5fGL1xiquIm/eK8Uwru92+tQ+oSrRoBfQ4CmaBPa1RJyasS2eSuEUIkscbrbczT+n/v2yfJCW1qgwhrygDIfRtvfYe0Y6CZWvruaJEBTPvHcJrQwFVyofdAwon2c8xWh4OwEGHxPeZvlkyc5jQvkJt9X5Qhv6RKHL8QkyP8FGCLvEGeMrXNTT7soIr1LEwG+DiVovVF9B/s0ZabbPWvL6C91evE48lUp7Q2zMw8gucl0JicJ4YRw4GKZ+T6pHvQOASf020D2j6H96UwyCYjBJoYwppsQ8GL4AL6Kb0C1cr6XjEmfBBk0MWuKQsNrVafr9LKirEnMVFo+0x2rMMFz/w8o7d/5g+hXJoED2ns=
+  - provider: script
+    script: poetry publish --username Ovv --password $PYPI_PASS --build
     on:
       repo: pyslackers/sir-bot-a-lot-2
       branch: master
-      python: '3.6'
+      python: '3.7'
       tags: true
