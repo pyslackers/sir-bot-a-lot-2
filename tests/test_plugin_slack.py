@@ -9,10 +9,10 @@ from typing import Dict, Tuple, Union, Optional
 from unittest import mock
 from collections import MutableMapping
 
-import slack
 import pytest
 import asynctest
 from aiohttp.web import json_response
+import slack
 from sirbot import SirBot
 from sirbot.plugins.slack import SlackPlugin
 
@@ -222,7 +222,7 @@ class TestPluginSlack:
             in caplog.text
         )
 
-    async def test_register_action(self, bot):
+    async def test_register_action(self, bot: SirBot):
         async def handler():
             pass
 
@@ -231,6 +231,27 @@ class TestPluginSlack:
 
         bot["plugins"]["slack"].on_action("hello", handler)
         bot["plugins"]["slack"].on_action("hello", handler2)
+
+        assert (
+            bot["plugins"]["slack"].routers["action"]._routes["hello"]["*"][0][0]
+            is handler
+        )
+        assert asyncio.iscoroutinefunction(
+            bot["plugins"]["slack"].routers["action"]._routes["hello"]["*"][0][0]
+        )
+        assert asyncio.iscoroutinefunction(
+            bot["plugins"]["slack"].routers["action"]._routes["hello"]["*"][1][0]
+        )
+
+    async def test_register_block_action(self, bot: SirBot):
+        async def handler():
+            pass
+
+        def handler2():
+            pass
+
+        bot["plugins"]["slack"].on_block("hello", handler)
+        bot["plugins"]["slack"].on_block("hello", handler2)
 
         assert (
             bot["plugins"]["slack"].routers["action"]._routes["hello"]["*"][0][0]
@@ -425,7 +446,6 @@ class TestPluginSlackEndpoints:
         assert r.status == 200
 
     async def test_event_challenge(self, bot, aiohttp_client):
-
         client = await aiohttp_client(bot)
         r = await client.post(
             "/slack/events",
@@ -441,7 +461,6 @@ class TestPluginSlackEndpoints:
         assert r.status == 200
 
     async def test_event_challenge_signed(self, bot_signing, aiohttp_client):
-
         client = await aiohttp_client(bot_signing)
         headers, body = _sign_body(
             json_data={
@@ -456,7 +475,6 @@ class TestPluginSlackEndpoints:
         assert data == "abcdefghij"
 
     async def test_event_challenge_wrong_token(self, bot, aiohttp_client):
-
         client = await aiohttp_client(bot)
         r = await client.post(
             "/slack/events",
@@ -469,7 +487,6 @@ class TestPluginSlackEndpoints:
         assert r.status == 500
 
     async def test_event_challenge_signed_wrong(self, bot_signing, aiohttp_client):
-
         client = await aiohttp_client(bot_signing)
         headers, body = _sign_body(
             json_data={

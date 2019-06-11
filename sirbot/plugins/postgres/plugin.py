@@ -1,10 +1,10 @@
 import os
 import logging
 
+import ujson
 import asyncpg
 import aiofiles
 from aiocontext import async_contextmanager
-import ujson
 
 LOG = logging.getLogger(__name__)
 
