@@ -53,6 +53,11 @@ Sir Bot-a-lot provide some plugins to connect to various services:
 Changelog
 ---------
 
+0.1.1
+`````
+
+* Support for block interactions
+
 0.1.0
 `````
 
